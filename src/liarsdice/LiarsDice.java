@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
+import java.util.HashMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoundedRangeModel;
@@ -36,7 +37,8 @@ public class LiarsDice implements ActionListener {
 		
 		JPanel gamePanel = new JPanel(new BorderLayout());
 		
-		JPanel graphicsPanel = new JPanel() {
+		@SuppressWarnings("serial")
+        JPanel graphicsPanel = new JPanel() {
 			public void paintComponent(Graphics g) {
 				render((Graphics2D) g);
             }
@@ -117,9 +119,11 @@ public class LiarsDice implements ActionListener {
 		if ("send".equalsIgnoreCase(cmd)) {
 			chatArea.append(chatField.getText() + "\n");
 			chatField.setText("");
+		} else if ("host".equalsIgnoreCase(cmd)) {
+		    //TODO Open settings dialog
+		    HashMap<String, Object> settings = new HashMap<String, Object>();
+		    settings.put("maxClients", 2);
 		}
-		chatPanel.setVisible(true);
-		frame.pack();
 	}
 	
 	public void render(Graphics2D g) {
