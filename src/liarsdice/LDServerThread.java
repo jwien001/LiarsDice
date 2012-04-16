@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class LDServerThread extends Thread {
+class LDServerThread extends Thread {
 
     private final LDServer server;
     private final Socket socket;
@@ -14,7 +14,7 @@ public class LDServerThread extends Thread {
     private final PrintWriter out;
     private final BufferedReader in;
     
-    public LDServerThread(LDServer server, Socket socket) throws IOException {
+    LDServerThread(LDServer server, Socket socket) throws IOException {
         this.server = server;
         this.socket = socket;
         clientName = socket.getInetAddress().getHostAddress();
@@ -22,12 +22,17 @@ public class LDServerThread extends Thread {
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
     
-    public void send(String msg) {
-        System.out.println("Server->" + clientName + ": " + msg);
+    void send(String msg) {
+        send(msg, true);
+    }
+    
+    void send(String msg, boolean print) {
+        if (print)
+            System.out.println("Server->" + clientName + ": " + msg);
         out.println(msg);
     }
     
-    public void close() {
+    void close() {
         try {
             out.close();
             in.close();
@@ -50,7 +55,11 @@ public class LDServerThread extends Thread {
         }
     }
     
-    public String getClientName() {
+    String getClientName() {
         return clientName;
+    }
+    
+    void setClientName(String clientName) {
+        this.clientName = clientName;
     }
 }

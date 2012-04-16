@@ -1,5 +1,6 @@
 package liarsdice;
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -7,24 +8,35 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.io.IOException;
 import java.util.HashMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoundedRangeModel;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
-public class LiarsDice implements ActionListener {
+public class LiarsDice implements ActionListener, LDListener {
 	
 	private JFrame frame;
+	private JPanel actionPanel;
 	private JPanel chatPanel;
 	private JTextArea chatArea;
 	private JTextField chatField;
+	
+	private JoinGameDialog joinGameDialog;
+	
+	private LDClient client;
 
 	public static void main(String[] args) {
 		new LiarsDice();
@@ -34,6 +46,39 @@ public class LiarsDice implements ActionListener {
 		frame = new JFrame("Liar's Dice");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BorderLayout());
+		frame.addWindowListener(new WindowListener() {
+            
+            @Override
+            public void windowOpened(WindowEvent e) {
+            }
+            
+            @Override
+            public void windowIconified(WindowEvent e) {
+            }
+            
+            @Override
+            public void windowDeiconified(WindowEvent e) {
+            }
+            
+            @Override
+            public void windowDeactivated(WindowEvent e) {
+            }
+            
+            @Override
+            public void windowClosing(WindowEvent e) {
+                client.exit();
+            }
+            
+            @Override
+            public void windowClosed(WindowEvent e) {
+            }
+            
+            @Override
+            public void windowActivated(WindowEvent arg0) {
+            }
+        });
+		
+		joinGameDialog = new JoinGameDialog(this);
 		
 		JPanel gamePanel = new JPanel(new BorderLayout());
 		
@@ -47,21 +92,21 @@ public class LiarsDice implements ActionListener {
 		
 		gamePanel.add(graphicsPanel, BorderLayout.CENTER);
 		
-		JPanel buttonPanel = new JPanel();
+		actionPanel = new JPanel();
 		
 		JButton hostButton = new JButton("Host New Game");
 		hostButton.setHorizontalTextPosition(SwingConstants.CENTER);
 		hostButton.addActionListener(this);
 		hostButton.setActionCommand("host");		
-		buttonPanel.add(hostButton);
+		actionPanel.add(hostButton);
 		
 		JButton joinButton = new JButton("Join Game");
 		joinButton.setHorizontalTextPosition(SwingConstants.CENTER);
 		joinButton.addActionListener(this);
 		joinButton.setActionCommand("join");		
-		buttonPanel.add(joinButton);
+		actionPanel.add(joinButton);
 		
-		gamePanel.add(buttonPanel, BorderLayout.SOUTH);
+		gamePanel.add(actionPanel, BorderLayout.SOUTH);
 		
 		frame.add(gamePanel, BorderLayout.CENTER);
 		
@@ -107,26 +152,149 @@ public class LiarsDice implements ActionListener {
 		
 		chatPanel.setVisible(false);
 		frame.add(chatPanel, BorderLayout.EAST);
-		
+
+        frame.setVisible(true);
 		frame.pack();
-		frame.setVisible(true);
 	}
 
 	@Override
-	public void actionPerformed(ActionEvent e) {
-		String cmd = e.getActionCommand();
+	public void actionPerformed(ActionEvent evt) {
+		String cmd = evt.getActionCommand();
 		
 		if ("send".equalsIgnoreCase(cmd)) {
-			chatArea.append(chatField.getText() + "\n");
+		    client.sendChat(chatField.getText());
 			chatField.setText("");
 		} else if ("host".equalsIgnoreCase(cmd)) {
 		    //TODO Open settings dialog
 		    HashMap<String, Object> settings = new HashMap<String, Object>();
 		    settings.put("maxClients", 2);
+		    settings.put("clientName", "Host");
+		    try {
+                client = new LDClient(settings, this);
+            } catch (IOException e) {
+                String msg = "Failed to initialize a game.";
+                JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+		    actionPanel.removeAll();
+		    chatReceived("*** Created a server at " + client.getServerIPAddress() 
+		                    + " on port " + client.getServerPortNumber() + " ***");
+		    joinGameDialog.dispose();
+		    chatPanel.setVisible(true);
+		    frame.pack();
+		} else if ("join".equalsIgnoreCase(cmd)) {
+		    joinGameDialog.display();
+		} else if ("joinSettings".equalsIgnoreCase(cmd)) {
+		    try {
+                client = new LDClient(joinGameDialog.getIPAddress(), 
+                                      joinGameDialog.getPortNumber(), 
+                                      joinGameDialog.getUsername(), 
+                                      this);
+            } catch (IOException e) {
+                String msg = "Failed to connect to the server at " + joinGameDialog.getIPAddress() 
+                            + " on port " + joinGameDialog.getPortNumber() + ".";
+                JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            actionPanel.removeAll();
+            joinGameDialog.dispose();
+            chatPanel.setVisible(true);
+            frame.pack();
 		}
 	}
+
+    @Override
+    public void chatReceived(String msg) {
+        chatArea.append(msg + "\n");
+    }
+
+    @Override
+    public void update() {
+        //TODO Fill out
+    }
+    
+    private void setPanelEnabled(JPanel panel, boolean enabled) {
+        for (Component c : panel.getComponents())
+            c.setEnabled(enabled);            
+    }
 	
 	public void render(Graphics2D g) {
 		g.drawRect(0, 0, 639, 479);
 	}
+}
+
+class JoinGameDialog extends JFrame implements ActionListener {
+    
+    private JTextField ipAddrField;
+    private JTextField portNumField;
+    private JTextField usernameField;
+    
+    public JoinGameDialog(ActionListener listener) {
+        super("Join Game");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+        
+        JPanel inputPanel = new JPanel();
+        
+        JPanel labelPanel = new JPanel();
+        labelPanel.setLayout(new BoxLayout(labelPanel, BoxLayout.Y_AXIS));
+        labelPanel.add(new JLabel("IP Address:"));
+        labelPanel.add(new JLabel("Port Number:"));
+        labelPanel.add(new JLabel("Username:"));
+        inputPanel.add(labelPanel);
+        
+        JPanel fieldPanel = new JPanel();
+        fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
+        ipAddrField = new JTextField(10);
+        fieldPanel.add(ipAddrField);
+        portNumField = new JTextField(4);
+        fieldPanel.add(portNumField);
+        usernameField = new JTextField(10);
+        fieldPanel.add(usernameField);
+        inputPanel.add(fieldPanel);
+        
+        add(inputPanel, BorderLayout.CENTER);
+        
+        JPanel buttonPanel = new JPanel();
+        
+        JButton okButton = new JButton("OK");
+        okButton.setHorizontalTextPosition(SwingConstants.CENTER);
+        okButton.addActionListener(listener);
+        okButton.setActionCommand("joinSettings");        
+        buttonPanel.add(okButton);
+        
+        JButton cancelButton = new JButton("Cancel");
+        cancelButton.setHorizontalTextPosition(SwingConstants.CENTER);
+        cancelButton.addActionListener(this);
+        cancelButton.setActionCommand("cancel");        
+        buttonPanel.add(cancelButton);
+        
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+    
+    public String getIPAddress() {
+        return ipAddrField.getText();
+    }
+    
+    public int getPortNumber() {
+        return Integer.valueOf(portNumField.getText());
+    }
+    
+    public String getUsername() {
+        return usernameField.getText();
+    }
+    
+    public void display() {
+        pack();
+        setVisible(true);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent evt) {
+        String cmd = evt.getActionCommand();
+        
+        if ("cancel".equalsIgnoreCase(cmd)) {
+            this.dispose();
+        }
+    }
 }

@@ -1,9 +1,13 @@
 package liarsdice;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +19,7 @@ public class LDServer implements Runnable {
 
     // Networking variables
     private final ServerSocket socket;
+    private String ipAddress;
     private final Thread thread;
     private final Map<String, Object> settings;
     private final Map<String, LDServerThread> pendingClients;
@@ -27,48 +32,106 @@ public class LDServer implements Runnable {
         this.settings = settings;
         pendingClients = new HashMap<String, LDServerThread>();
         clients = new HashMap<String, LDServerThread>((Integer) settings.get("maxClients"));
-        socket = new ServerSocket(1991);
+        socket = new ServerSocket(0);
         socket.setSoTimeout(2000);
         thread = new Thread(this);
         thread.start();
     }
     
-    public synchronized void handle(String clientName, String msg) {
+    synchronized void handle(String clientName, String msg) {
         System.out.println(clientName + ": " + msg);
         
-        // Stateless messages
+        // Messages from any client
         if (msg.startsWith("QUIT")) {
             disconnect(clientName);
-        } else if (msg.startsWith("CHAT")) {
-            String chatMsg = msg.substring(5);
-            for (LDServerThread t : clients.values())
-                ; //TODO Send message to each
-        } else {        
-            // State-specific messages
-            switch (state) {
-                case PREGAME:
-                    break;
-                default:
-                    //TODO Shutdown server
+            return;
+        }
+        
+        if (pendingClients.containsKey(clientName)) {
+            // Messages from pending clients
+            if (msg.startsWith("HELO") && state == State.PREGAME) {
+                String newName = msg.substring(5);
+                for (int i=1; clients.containsKey(newName); i++)
+                    newName = msg.substring(5) + " (" + i + ")";
+                //LDServerThread client = clients.put(newName, pendingClients.remove(clientName));
+                LDServerThread client = pendingClients.remove(clientName);
+                client.setClientName(newName);
+                clients.put(newName, client);
+                
+                String response = "HELO " + newName + " " + (clients.size() - 1);
+                for (String name : clients.keySet())
+                    if (!name.equals(newName))
+                        response += " " + name;
+                client.send(response);
+            }
+        } else if (clients.containsKey(clientName)) {
+            // Messages from accepted clients
+            
+            // Stateless messages
+            if (msg.startsWith("CHAT")) {
+                sendAll("CHAT " + clientName + ": " + msg.substring(5));
+            } else {        
+                // State-specific messages
+                switch (state) {
+                    case PREGAME:
+                        break;
+                    default:
+                        exit();
+                }
             }
         }
     }
     
-    public synchronized void disconnect(String clientName) {
+    private void sendAll(String msg) {
+        System.out.println("Server->All: " + msg);
+        
+        for (LDServerThread t : clients.values())
+            t.send(msg, false);
+    }
+    
+    synchronized void disconnect(String clientName) {
         LDServerThread client;
         if ((client = clients.remove(clientName)) == null)
             client = pendingClients.remove(clientName);
+        if (client == null)
+            return;
         client.send("QUIT");
         client.close();
         //TODO Remove player from game
     }
-    
-    /*
-     * Note: This should only be called from the host client
-     */
+
     public void exit() {
-        //TODO Change game state to something besides PREGAME
-        //TODO Tell all clients to quit
+        state = null;
+        for (String name : pendingClients.keySet())
+            disconnect(name);
+        for (String name : clients.keySet())
+            disconnect(name);
+    }
+    
+    public String getIPAddress() {
+        if (ipAddress != null)
+            return ipAddress;
+        URL url;
+        try {
+            url = new URL("http://automation.whatismyip.com/n09230945.asp");
+            BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+            return (ipAddress = in.readLine().trim());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            try {
+                url = new URL("http://api.externalip.net/ip/");
+                BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
+                return (ipAddress = in.readLine().trim());
+            } catch (MalformedURLException e1) {
+                e1.printStackTrace();
+            } catch (IOException e1) {}
+        }
+        return null;
+    }
+    
+    public int getPortNumber() {
+        return socket.getLocalPort();
     }
 
     @Override
