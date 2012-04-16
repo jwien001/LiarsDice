@@ -26,7 +26,7 @@ public class LDServer implements Runnable {
     private final Map<String, LDServerThread> clients;
     
     // Game variables
-    private State state = State.PREGAME;
+    private State state;
 
     public LDServer(final Map<String, Object> settings) throws IOException {
         this.settings = settings;
@@ -34,6 +34,7 @@ public class LDServer implements Runnable {
         clients = new HashMap<String, LDServerThread>((Integer) settings.get("maxClients"));
         socket = new ServerSocket(0);
         socket.setSoTimeout(2000);
+        state = State.PREGAME;
         thread = new Thread(this);
         thread.start();
     }
@@ -60,8 +61,10 @@ public class LDServer implements Runnable {
                 
                 String response = "HELO " + newName + " " + (clients.size() - 1);
                 for (String name : clients.keySet())
-                    if (!name.equals(newName))
+                    if (!name.equals(newName)) {
                         response += " " + name;
+                        clients.get(name).send("JOIN " + newName);
+                    }
                 client.send(response);
             }
         } else if (clients.containsKey(clientName)) {
@@ -83,6 +86,9 @@ public class LDServer implements Runnable {
     }
     
     private void sendAll(String msg) {
+        if (state == null) // Exiting, so do not broadcast messages
+            return;
+        
         System.out.println("Server->All: " + msg);
         
         for (LDServerThread t : clients.values())
@@ -91,12 +97,17 @@ public class LDServer implements Runnable {
     
     synchronized void disconnect(String clientName) {
         LDServerThread client;
-        if ((client = clients.remove(clientName)) == null)
+        if ((client = clients.remove(clientName)) == null) {
             client = pendingClients.remove(clientName);
-        if (client == null)
+            if (client == null)
+                return;
+            client.send("QUIT");
+            client.close();
             return;
+        }
         client.send("QUIT");
         client.close();
+        sendAll("LEFT " + clientName);
         //TODO Remove player from game
     }
 
@@ -136,31 +147,33 @@ public class LDServer implements Runnable {
 
     @Override
     public void run() {
-        while (state == State.PREGAME) {
-            Socket client;
-            try {
-                client = socket.accept();
-            } catch (IOException e) {
-                continue;
-            }            
-            
-            if (clients.size() < (Integer) settings.get("maxClients")) {
+        while (state != null) {
+            if (state == State.PREGAME) {
+                Socket client;
                 try {
-                    LDServerThread newClient = new LDServerThread(this, client);
-                    pendingClients.put(newClient.getClientName(), newClient);
-                    newClient.start();
+                    client = socket.accept();
                 } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                try {
-                    PrintWriter out = new PrintWriter(client.getOutputStream(), true);
-                    out.println("ERR FULL");
-                    out.close();
-                    client.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
                     continue;
+                }            
+                
+                if (clients.size() < (Integer) settings.get("maxClients")) {
+                    try {
+                        LDServerThread newClient = new LDServerThread(this, client);
+                        pendingClients.put(newClient.getClientName(), newClient);
+                        newClient.start();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        PrintWriter out = new PrintWriter(client.getOutputStream(), true);
+                        out.println("ERR FULL");
+                        out.close();
+                        client.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        continue;
+                    }
                 }
             }
         }

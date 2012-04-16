@@ -1,6 +1,6 @@
 package liarsdice;
+
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -46,36 +46,30 @@ public class LiarsDice implements ActionListener, LDListener {
 		frame = new JFrame("Liar's Dice");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BorderLayout());
-		frame.addWindowListener(new WindowListener() {
+		frame.addWindowListener(new WindowListener() {            
+            @Override
+            public void windowOpened(WindowEvent e) {}
             
             @Override
-            public void windowOpened(WindowEvent e) {
-            }
+            public void windowIconified(WindowEvent e) {}
             
             @Override
-            public void windowIconified(WindowEvent e) {
-            }
+            public void windowDeiconified(WindowEvent e) {}
             
             @Override
-            public void windowDeiconified(WindowEvent e) {
-            }
-            
-            @Override
-            public void windowDeactivated(WindowEvent e) {
-            }
+            public void windowDeactivated(WindowEvent e) {}
             
             @Override
             public void windowClosing(WindowEvent e) {
-                client.exit();
+                if (client != null)
+                    client.exit();
             }
             
             @Override
-            public void windowClosed(WindowEvent e) {
-            }
+            public void windowClosed(WindowEvent e) {}
             
             @Override
-            public void windowActivated(WindowEvent arg0) {
-            }
+            public void windowActivated(WindowEvent arg0) {}
         });
 		
 		joinGameDialog = new JoinGameDialog(this);
@@ -177,10 +171,7 @@ public class LiarsDice implements ActionListener, LDListener {
                 return;
             }
 		    actionPanel.removeAll();
-		    chatReceived("*** Created a server at " + client.getServerIPAddress() 
-		                    + " on port " + client.getServerPortNumber() + " ***");
 		    joinGameDialog.dispose();
-		    chatPanel.setVisible(true);
 		    frame.pack();
 		} else if ("join".equalsIgnoreCase(cmd)) {
 		    joinGameDialog.display();
@@ -198,7 +189,6 @@ public class LiarsDice implements ActionListener, LDListener {
             }
             actionPanel.removeAll();
             joinGameDialog.dispose();
-            chatPanel.setVisible(true);
             frame.pack();
 		}
 	}
@@ -212,17 +202,13 @@ public class LiarsDice implements ActionListener, LDListener {
     public void update() {
         //TODO Fill out
     }
-    
-    private void setPanelEnabled(JPanel panel, boolean enabled) {
-        for (Component c : panel.getComponents())
-            c.setEnabled(enabled);            
-    }
 	
 	public void render(Graphics2D g) {
 		g.drawRect(0, 0, 639, 479);
 	}
 }
 
+@SuppressWarnings("serial")
 class JoinGameDialog extends JFrame implements ActionListener {
     
     private JTextField ipAddrField;

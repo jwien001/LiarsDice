@@ -48,6 +48,8 @@ public class LDClient implements Runnable {
         server = new LDServer(settings);
         
         init("127.0.0.1", server.getPortNumber(), (String) settings.get("clientName"), listener);
+        
+        listener.chatReceived("*** Created a server at " + server.getIPAddress() + " on port " + server.getPortNumber());
     }
     
     private void init(String ipAddress, int portNumber, String clientName, LDListener listener) 
@@ -87,25 +89,17 @@ public class LDClient implements Runnable {
         sendToServer("CHAT " +  msg);
     }
     
-    public String getServerIPAddress() {
-        if (server != null)
-            return server.getIPAddress();
-        else
-            return socket.getInetAddress().getHostAddress();
-    }
-    
-    public int getServerPortNumber() {
-        if (server != null)
-            return server.getPortNumber();
-        else
-            return socket.getPort();
-    }
-    
     private void handle(String msg) {
         if (msg.startsWith("QUIT")) {
             exit();
         } else if (msg.startsWith("CHAT")) {
             listener.chatReceived(msg.substring(5));
+        } else if (msg.startsWith("JOIN")) {
+            listener.chatReceived("*** " + msg.substring(5) + " has joined the game.");
+        } else if (msg.startsWith("LEFT")) {
+            listener.chatReceived("*** " + msg.substring(5) + " has left the game.");
+        } else if (msg.startsWith("HELO")) {
+            //TODO Update with initial game state
         }
     }
     
