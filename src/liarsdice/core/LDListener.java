@@ -1,4 +1,4 @@
-package liarsdice;
+package liarsdice.core;
 
 
 public interface LDListener {

@@ -1,4 +1,4 @@
-package liarsdice;
+package liarsdice.core;
 
 import java.io.BufferedReader;
 import java.io.IOException;

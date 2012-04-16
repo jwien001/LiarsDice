@@ -26,6 +26,9 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import liarsdice.core.LDClient;
+import liarsdice.core.LDListener;
+
 public class LiarsDice implements ActionListener, LDListener {
 	
 	private JFrame frame;
