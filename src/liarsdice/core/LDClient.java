@@ -18,6 +18,8 @@ public class LDClient implements Runnable {
     private BufferedReader in;
     private Thread thread;
     private LDListener listener;
+    
+    private boolean outputEnabled = true;
 
     /**
      * Constructs a Liar's Dice client that will attempt to join a game hosted at 
@@ -73,8 +75,9 @@ public class LDClient implements Runnable {
     public void exit() {
         if (server != null)
             server.exit();
-        else
+        else if (outputEnabled)
             sendToServer("QUIT");
+        outputEnabled = false;
         
         try {
             out.close();
@@ -91,6 +94,8 @@ public class LDClient implements Runnable {
     
     private void handle(String msg) {
         if (msg.startsWith("QUIT")) {
+            //TODO Null game state and update with that
+            gameError("HOST QUIT");
             exit();
         } else if (msg.startsWith("CHAT")) {
             listener.chatReceived(msg.substring(5));
@@ -100,11 +105,20 @@ public class LDClient implements Runnable {
             listener.chatReceived("*** " + msg.substring(5) + " has left the game.");
         } else if (msg.startsWith("HELO")) {
             //TODO Update with initial game state
+            listener.gameUpdate();
+        } else if (msg.startsWith("ERR")) {
+            gameError(msg.substring(4));
+            outputEnabled = false;
         }
     }
     
     private void sendToServer(String msg) {
         out.println(msg);
+    }
+    
+    private void gameError(String errorCode) {
+        if (outputEnabled)
+            listener.gameError(errorCode);
     }
 
     @Override
@@ -114,6 +128,7 @@ public class LDClient implements Runnable {
                 handle(in.readLine());
             } catch (IOException e) {
                 e.printStackTrace();
+                gameError("CONNECTION LOST");
                 exit();
                 break;
             }

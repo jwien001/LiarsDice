@@ -33,6 +33,7 @@ public class LiarsDice implements ActionListener, LDListener {
 	
 	private JFrame frame;
 	private JPanel actionPanel;
+	private JButton hostButton, joinButton;
 	private JPanel chatPanel;
 	private JTextArea chatArea;
 	private JTextField chatField;
@@ -91,13 +92,13 @@ public class LiarsDice implements ActionListener, LDListener {
 		
 		actionPanel = new JPanel();
 		
-		JButton hostButton = new JButton("Host New Game");
+		hostButton = new JButton("Host New Game");
 		hostButton.setHorizontalTextPosition(SwingConstants.CENTER);
 		hostButton.addActionListener(this);
 		hostButton.setActionCommand("host");		
 		actionPanel.add(hostButton);
 		
-		JButton joinButton = new JButton("Join Game");
+		joinButton = new JButton("Join Game");
 		joinButton.setHorizontalTextPosition(SwingConstants.CENTER);
 		joinButton.addActionListener(this);
 		joinButton.setActionCommand("join");		
@@ -164,7 +165,7 @@ public class LiarsDice implements ActionListener, LDListener {
 		} else if ("host".equalsIgnoreCase(cmd)) {
 		    //TODO Open settings dialog
 		    HashMap<String, Object> settings = new HashMap<String, Object>();
-		    settings.put("maxClients", 2);
+		    settings.put("maxClients", 1);
 		    settings.put("clientName", "Host");
 		    try {
                 client = new LDClient(settings, this);
@@ -180,9 +181,9 @@ public class LiarsDice implements ActionListener, LDListener {
 		    joinGameDialog.display();
 		} else if ("joinSettings".equalsIgnoreCase(cmd)) {
 		    try {
-                client = new LDClient(joinGameDialog.getIPAddress(), 
-                                      joinGameDialog.getPortNumber(), 
-                                      joinGameDialog.getUsername(), 
+                client = new LDClient(joinGameDialog.getIPAddress(),
+                                      joinGameDialog.getPortNumber(),
+                                      joinGameDialog.getUsername(),
                                       this);
             } catch (IOException e) {
                 String msg = "Failed to connect to the server at " + joinGameDialog.getIPAddress() 
@@ -202,8 +203,38 @@ public class LiarsDice implements ActionListener, LDListener {
     }
 
     @Override
-    public void update() {
-        //TODO Fill out
+    public void gameUpdate() {
+        //TODO Fill out for real
+        chatPanel.setVisible(true);
+        frame.pack();
+    }
+    
+    @Override
+    public void gameError(String errorCode) {
+        if ("FULL".equals(errorCode)) {
+            String msg = "The game at " + joinGameDialog.getIPAddress() 
+                    + " on port " + joinGameDialog.getPortNumber() + " is full.";
+            JOptionPane.showMessageDialog(frame, msg, "Full Game", JOptionPane.ERROR_MESSAGE);
+            actionPanel.add(hostButton);
+            actionPanel.add(joinButton);
+            frame.pack();
+        } else if ("CONNECTION LOST".equals(errorCode)) {
+            String msg = "The connection to the game was lost.";
+            JOptionPane.showMessageDialog(frame, msg, "Connection Lost", JOptionPane.ERROR_MESSAGE);
+            actionPanel.removeAll();
+            actionPanel.add(hostButton);
+            actionPanel.add(joinButton);
+            chatPanel.setVisible(false);
+            frame.pack();
+        } else if ("HOST QUIT".equals(errorCode)) {
+            String msg = "The host has closed the game.";
+            JOptionPane.showMessageDialog(frame, msg, "Host Quit", JOptionPane.ERROR_MESSAGE);
+            actionPanel.removeAll();
+            actionPanel.add(hostButton);
+            actionPanel.add(joinButton);
+            chatPanel.setVisible(false);
+            frame.pack();
+        }
     }
 	
 	public void render(Graphics2D g) {

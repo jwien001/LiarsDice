@@ -54,7 +54,6 @@ public class LDServer implements Runnable {
                 String newName = msg.substring(5);
                 for (int i=1; clients.containsKey(newName); i++)
                     newName = msg.substring(5) + " (" + i + ")";
-                //LDServerThread client = clients.put(newName, pendingClients.remove(clientName));
                 LDServerThread client = pendingClients.remove(clientName);
                 client.setClientName(newName);
                 clients.put(newName, client);
@@ -96,15 +95,23 @@ public class LDServer implements Runnable {
     }
     
     synchronized void disconnect(String clientName) {
+        disconnect(clientName, true);
+    }
+    
+    synchronized void disconnect(String clientName, boolean remove) {
         LDServerThread client;
-        if ((client = clients.remove(clientName)) == null) {
-            client = pendingClients.remove(clientName);
+        if ((client = clients.get(clientName)) == null) {
+            client = pendingClients.get(clientName);
+            if (remove)
+                pendingClients.remove(clientName);
             if (client == null)
                 return;
             client.send("QUIT");
             client.close();
             return;
         }
+        if (remove)
+            clients.remove(clientName);
         client.send("QUIT");
         client.close();
         sendAll("LEFT " + clientName);
@@ -114,9 +121,11 @@ public class LDServer implements Runnable {
     public void exit() {
         state = null;
         for (String name : pendingClients.keySet())
-            disconnect(name);
+            disconnect(name, false);
+        pendingClients.clear();
         for (String name : clients.keySet())
-            disconnect(name);
+            disconnect(name, false);
+        clients.clear();
     }
     
     public String getIPAddress() {
@@ -168,9 +177,14 @@ public class LDServer implements Runnable {
                     try {
                         PrintWriter out = new PrintWriter(client.getOutputStream(), true);
                         out.println("ERR FULL");
+                        System.out.println("Server->" + client.getInetAddress().getHostAddress() + ": ERR FULL");
+                        Thread.sleep(400);
                         out.close();
                         client.close();
                     } catch (IOException e) {
+                        e.printStackTrace();
+                        continue;
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                         continue;
                     }
