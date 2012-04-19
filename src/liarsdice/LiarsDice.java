@@ -154,6 +154,15 @@ public class LiarsDice implements ActionListener, LDListener {
         frame.setVisible(true);
 		frame.pack();
 	}
+	
+	public void resetToMainMenu() {
+	    client = null;
+	    actionPanel.removeAll();
+        actionPanel.add(hostButton);
+        actionPanel.add(joinButton);
+        chatPanel.setVisible(false);
+        frame.pack();
+	}
 
 	@Override
 	public void actionPerformed(ActionEvent evt) {
@@ -165,13 +174,16 @@ public class LiarsDice implements ActionListener, LDListener {
 		} else if ("host".equalsIgnoreCase(cmd)) {
 		    //TODO Open settings dialog
 		    HashMap<String, Object> settings = new HashMap<String, Object>();
-		    settings.put("maxClients", 1);
-		    settings.put("clientName", "Host");
+		    settings.put("maxClients", 2);
+		    
 		    try {
-                client = new LDClient(settings, this);
+                client = new LDClient(settings, "Host", this);
             } catch (IOException e) {
                 String msg = "Failed to initialize a game.";
                 JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            } catch (IllegalArgumentException e) {
+                JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
                 return;
             }
 		    actionPanel.removeAll();
@@ -189,6 +201,9 @@ public class LiarsDice implements ActionListener, LDListener {
                 String msg = "Failed to connect to the server at " + joinGameDialog.getIPAddress() 
                             + " on port " + joinGameDialog.getPortNumber() + ".";
                 JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            } catch (IllegalArgumentException e) {
+                JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
                 return;
             }
             actionPanel.removeAll();
@@ -215,25 +230,15 @@ public class LiarsDice implements ActionListener, LDListener {
             String msg = "The game at " + joinGameDialog.getIPAddress() 
                     + " on port " + joinGameDialog.getPortNumber() + " is full.";
             JOptionPane.showMessageDialog(frame, msg, "Full Game", JOptionPane.ERROR_MESSAGE);
-            actionPanel.add(hostButton);
-            actionPanel.add(joinButton);
-            frame.pack();
+            resetToMainMenu();
         } else if ("CONNECTION LOST".equals(errorCode)) {
             String msg = "The connection to the game was lost.";
             JOptionPane.showMessageDialog(frame, msg, "Connection Lost", JOptionPane.ERROR_MESSAGE);
-            actionPanel.removeAll();
-            actionPanel.add(hostButton);
-            actionPanel.add(joinButton);
-            chatPanel.setVisible(false);
-            frame.pack();
+            resetToMainMenu();
         } else if ("HOST QUIT".equals(errorCode)) {
             String msg = "The host has closed the game.";
             JOptionPane.showMessageDialog(frame, msg, "Host Quit", JOptionPane.ERROR_MESSAGE);
-            actionPanel.removeAll();
-            actionPanel.add(hostButton);
-            actionPanel.add(joinButton);
-            chatPanel.setVisible(false);
-            frame.pack();
+            resetToMainMenu();
         }
     }
 	

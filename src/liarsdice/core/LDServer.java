@@ -31,7 +31,7 @@ public class LDServer implements Runnable {
     public LDServer(final Map<String, Object> settings) throws IOException {
         this.settings = settings;
         pendingClients = new HashMap<String, LDServerThread>();
-        clients = new HashMap<String, LDServerThread>((Integer) settings.get("maxClients"));
+        clients = new HashMap<String, LDServerThread>((int)((Integer) settings.get("maxClients") / 0.75) + 1);
         socket = new ServerSocket(0);
         socket.setSoTimeout(2000);
         state = State.PREGAME;
@@ -84,7 +84,7 @@ public class LDServer implements Runnable {
         }
     }
     
-    private void sendAll(String msg) {
+    private synchronized void sendAll(String msg) {
         if (state == null) // Exiting, so do not broadcast messages
             return;
         
@@ -118,7 +118,7 @@ public class LDServer implements Runnable {
         //TODO Remove player from game
     }
 
-    public void exit() {
+    public synchronized void exit() {
         state = null;
         for (String name : pendingClients.keySet())
             disconnect(name, false);

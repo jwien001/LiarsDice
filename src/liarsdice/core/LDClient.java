@@ -43,19 +43,23 @@ public class LDClient implements Runnable {
      * that will connect to that server and attempt to join the game.
      * 
      * @param settings the configuration options for the server
+     * @param clientName the username to represent the client in the game
      * @param listener the object that should be notified when new data is received from the server
      * @throws IOException if the server or client fails to initialize properly
      */
-    public LDClient(Map<String, Object> settings, LDListener listener) throws IOException {
+    public LDClient(Map<String, Object> settings, String clientName, LDListener listener) throws IOException {
         server = new LDServer(settings);
         
-        init("127.0.0.1", server.getPortNumber(), (String) settings.get("clientName"), listener);
+        init("127.0.0.1", server.getPortNumber(), clientName, listener);
         
-        listener.chatReceived("*** Created a server at " + server.getIPAddress() + " on port " + server.getPortNumber());
+        chatReceived("*** Created a server at " + server.getIPAddress() + " on port " + server.getPortNumber());
     }
     
     private void init(String ipAddress, int portNumber, String clientName, LDListener listener) 
             throws IOException {
+        if (clientName == null || (clientName = clientName.trim()).length() == 0)
+            throw new IllegalArgumentException("Client name must be more than whitespace.");
+        
         this.listener = listener;
         socket = new Socket();
         socket.connect(new InetSocketAddress(ipAddress, portNumber), 4000);
@@ -92,20 +96,19 @@ public class LDClient implements Runnable {
         sendToServer("CHAT " +  msg);
     }
     
-    private void handle(String msg) {
+    private synchronized void handle(String msg) {
         if (msg.startsWith("QUIT")) {
             //TODO Null game state and update with that
             gameError("HOST QUIT");
             exit();
         } else if (msg.startsWith("CHAT")) {
-            listener.chatReceived(msg.substring(5));
+            chatReceived(msg.substring(5));
         } else if (msg.startsWith("JOIN")) {
-            listener.chatReceived("*** " + msg.substring(5) + " has joined the game.");
+            chatReceived("*** " + msg.substring(5) + " has joined the game.");
         } else if (msg.startsWith("LEFT")) {
-            listener.chatReceived("*** " + msg.substring(5) + " has left the game.");
+            chatReceived("*** " + msg.substring(5) + " has left the game.");
         } else if (msg.startsWith("HELO")) {
-            //TODO Update with initial game state
-            listener.gameUpdate();
+            gameUpdate();
         } else if (msg.startsWith("ERR")) {
             gameError(msg.substring(4));
             outputEnabled = false;
@@ -114,6 +117,14 @@ public class LDClient implements Runnable {
     
     private void sendToServer(String msg) {
         out.println(msg);
+    }
+    
+    private void chatReceived(String msg) {
+        listener.chatReceived(msg);
+    }
+    
+    private void gameUpdate() {
+        listener.gameUpdate();
     }
     
     private void gameError(String errorCode) {
