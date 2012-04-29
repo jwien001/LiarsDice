@@ -52,7 +52,7 @@ public class LDClient implements Runnable {
         
         init("127.0.0.1", server.getPortNumber(), clientName, listener);
         
-        chatReceived("*** Created a server at " + server.getIPAddress() + " on port " + server.getPortNumber());
+        chatMessage("*** Created a server at " + server.getIPAddress() + " on port " + server.getPortNumber());
     }
     
     private void init(String ipAddress, int portNumber, String clientName, LDListener listener) 
@@ -102,11 +102,11 @@ public class LDClient implements Runnable {
             gameError("HOST QUIT");
             exit();
         } else if (msg.startsWith("CHAT")) {
-            chatReceived(msg.substring(5));
+            chatMessage(msg.substring(5));
         } else if (msg.startsWith("JOIN")) {
-            chatReceived("*** " + msg.substring(5) + " has joined the game.");
+            chatMessage("*** " + msg.substring(5) + " has joined the game.");
         } else if (msg.startsWith("LEFT")) {
-            chatReceived("*** " + msg.substring(5) + " has left the game.");
+            chatMessage("*** " + msg.substring(5) + " has left the game.");
         } else if (msg.startsWith("HELO")) {
             gameUpdate();
         } else if (msg.startsWith("ERR")) {
@@ -119,8 +119,8 @@ public class LDClient implements Runnable {
         out.println(msg);
     }
     
-    private void chatReceived(String msg) {
-        listener.chatReceived(msg);
+    private void chatMessage(String msg) {
+        listener.chatMessage(msg);
     }
     
     private void gameUpdate() {

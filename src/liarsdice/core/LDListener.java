@@ -3,7 +3,7 @@ package liarsdice.core;
 
 public interface LDListener {
     
-    void chatReceived(String msg);
+    void chatMessage(String msg);
     
     void gameUpdate(/* TODO Pass in the game state */);
     

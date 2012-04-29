@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
@@ -32,6 +33,8 @@ import liarsdice.core.LDListener;
 public class LiarsDice implements ActionListener, LDListener {
 	
 	private JFrame frame;
+	private JPanel[] playerPanels;
+	private JTextArea messagePanel;
 	private JPanel actionPanel;
 	private JButton hostButton, joinButton;
 	private JPanel chatPanel;
@@ -41,12 +44,15 @@ public class LiarsDice implements ActionListener, LDListener {
 	private JoinGameDialog joinGameDialog;
 	
 	private LDClient client;
+	
+	private boolean waitingOnMessage;
 
 	public static void main(String[] args) {
 		new LiarsDice();
 	}
 	
-	public LiarsDice() {
+	@SuppressWarnings("serial")
+    public LiarsDice() {
 		frame = new JFrame("Liar's Dice");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BorderLayout());
@@ -80,13 +86,38 @@ public class LiarsDice implements ActionListener, LDListener {
 		
 		JPanel gamePanel = new JPanel(new BorderLayout());
 		
-		@SuppressWarnings("serial")
-        JPanel graphicsPanel = new JPanel() {
-			public void paintComponent(Graphics g) {
-				render((Graphics2D) g);
-            }
-		};
-		graphicsPanel.setPreferredSize(new Dimension(640, 480));
+        JPanel graphicsPanel = new JPanel(new GridLayout(3, 3));
+        graphicsPanel.setPreferredSize(new Dimension(720, 480));
+        
+        playerPanels = new JPanel[8];
+        for (int i=0; i<playerPanels.length; i++) {
+            final int index = i;
+            playerPanels[i] = new JPanel() {
+                @Override
+                public void paintComponent(final Graphics g) {
+                    render((Graphics2D) g, index);
+                }
+            };
+            playerPanels[i].setPreferredSize(new Dimension(240, 160));
+        }
+        
+        messagePanel = new JTextArea();
+        messagePanel.setPreferredSize(new Dimension(240, 160));
+        messagePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        messagePanel.setEditable(false);
+        messagePanel.setLineWrap(true);
+        messagePanel.setWrapStyleWord(true);
+        messagePanel.setText("LIAR'S DICE");
+        
+        graphicsPanel.add(playerPanels[3]);
+        graphicsPanel.add(playerPanels[4]);
+        graphicsPanel.add(playerPanels[5]);
+        graphicsPanel.add(playerPanels[2]);
+        graphicsPanel.add(messagePanel);
+        graphicsPanel.add(playerPanels[6]);
+        graphicsPanel.add(playerPanels[1]);
+        graphicsPanel.add(playerPanels[0]);
+        graphicsPanel.add(playerPanels[7]);
 		
 		gamePanel.add(graphicsPanel, BorderLayout.CENTER);
 		
@@ -111,7 +142,7 @@ public class LiarsDice implements ActionListener, LDListener {
 		chatPanel = new JPanel(new BorderLayout());
 		chatPanel.setBorder(BorderFactory.createTitledBorder("Chat"));
 		
-		chatArea = new JTextArea(28, 20);
+		chatArea = new JTextArea(27, 20);
 		chatArea.setEditable(false);
 		chatArea.setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
 		chatArea.setLineWrap(true);
@@ -160,6 +191,7 @@ public class LiarsDice implements ActionListener, LDListener {
 	    actionPanel.removeAll();
         actionPanel.add(hostButton);
         actionPanel.add(joinButton);
+        messagePanel.setText("LIAR'S DICE");
         chatPanel.setVisible(false);
         frame.pack();
 	}
@@ -174,8 +206,9 @@ public class LiarsDice implements ActionListener, LDListener {
 		} else if ("host".equalsIgnoreCase(cmd)) {
 		    //TODO Open settings dialog
 		    HashMap<String, Object> settings = new HashMap<String, Object>();
-		    settings.put("maxClients", 2);
+		    settings.put("maxClients", 4);
 		    
+		    waitingOnMessage = true;
 		    try {
                 client = new LDClient(settings, "Host", this);
             } catch (IOException e) {
@@ -186,12 +219,15 @@ public class LiarsDice implements ActionListener, LDListener {
                 JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
                 return;
             }
-		    actionPanel.removeAll();
+		    if (waitingOnMessage)
+		        actionPanel.removeAll();
 		    joinGameDialog.dispose();
 		    frame.pack();
 		} else if ("join".equalsIgnoreCase(cmd)) {
 		    joinGameDialog.display();
 		} else if ("joinSettings".equalsIgnoreCase(cmd)) {
+		    //TODO Validate join settings dialog
+		    waitingOnMessage = true;
 		    try {
                 client = new LDClient(joinGameDialog.getIPAddress(),
                                       joinGameDialog.getPortNumber(),
@@ -206,21 +242,26 @@ public class LiarsDice implements ActionListener, LDListener {
                 JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            actionPanel.removeAll();
+		    if (waitingOnMessage)
+                actionPanel.removeAll();
             joinGameDialog.dispose();
             frame.pack();
 		}
 	}
 
     @Override
-    public void chatReceived(String msg) {
+    public void chatMessage(String msg) {
         chatArea.append(msg + "\n");
     }
 
     @Override
     public void gameUpdate() {
         //TODO Fill out for real
+        waitingOnMessage = false;
         chatPanel.setVisible(true);
+        actionPanel.removeAll();
+        //TODO Add Ready and Quit buttons
+        messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
         frame.pack();
     }
     
@@ -242,8 +283,9 @@ public class LiarsDice implements ActionListener, LDListener {
         }
     }
 	
-	public void render(Graphics2D g) {
-		g.drawRect(0, 0, 639, 479);
+	public void render(Graphics2D g, int panelNum) {
+		g.drawRect(0, 0, 239, 159);
+		g.drawString("" + panelNum, 8, 16);
 	}
 }
 

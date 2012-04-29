@@ -17,7 +17,7 @@ class LDServerThread extends Thread {
     LDServerThread(LDServer server, Socket socket) throws IOException {
         this.server = server;
         this.socket = socket;
-        clientName = socket.getInetAddress().getHostAddress();
+        clientName = socket.getInetAddress().getHostAddress() + ":" + socket.getPort();
         out = new PrintWriter(socket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
