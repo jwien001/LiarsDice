@@ -6,8 +6,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Map;
 
+import liarsdice.gamedata.GameState;
+import liarsdice.gamedata.Settings;
 
 public class LDClient implements Runnable {
     
@@ -20,6 +21,8 @@ public class LDClient implements Runnable {
     private LDListener listener;
     
     private boolean outputEnabled = true;
+    
+    private GameState state;
 
     /**
      * Constructs a Liar's Dice client that will attempt to join a game hosted at 
@@ -47,7 +50,7 @@ public class LDClient implements Runnable {
      * @param listener the object that should be notified when new data is received from the server
      * @throws IOException if the server or client fails to initialize properly
      */
-    public LDClient(Map<String, Object> settings, String clientName, LDListener listener) throws IOException {
+    public LDClient(Settings settings, String clientName, LDListener listener) throws IOException {
         server = new LDServer(settings);
         
         init("127.0.0.1", server.getPortNumber(), clientName, listener);
@@ -73,10 +76,20 @@ public class LDClient implements Runnable {
     }
     
     /**
+     * Returns the current game state.
+     * 
+     * @return the game state
+     */
+    public GameState getGameState() {
+        return state;
+    }
+    
+    /**
      * Removes the client from the game and closes the client's connection to the server.
      * If this client is the game host, this method will close the server as well.
      */
     public void exit() {
+        state = null;
         if (server != null)
             server.exit();
         else if (outputEnabled)
@@ -92,13 +105,17 @@ public class LDClient implements Runnable {
         }
     }
     
+    /**
+     * Sends a chat message to all of the other players.
+     * 
+     * @param msg the message to send
+     */
     public void sendChat(String msg) {
         sendToServer("CHAT " +  msg);
     }
     
     private synchronized void handle(String msg) {
         if (msg.startsWith("QUIT")) {
-            //TODO Null game state and update with that
             gameError("HOST QUIT");
             exit();
         } else if (msg.startsWith("CHAT")) {

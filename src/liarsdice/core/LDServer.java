@@ -11,30 +11,29 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LDServer implements Runnable {
+import liarsdice.gamedata.GameState;
+import liarsdice.gamedata.Settings;
 
-    private enum State {
-        PREGAME
-    };
+public class LDServer implements Runnable {
 
     // Networking variables
     private final ServerSocket socket;
     private String ipAddress;
     private final Thread thread;
-    private final Map<String, Object> settings;
+    private final Settings settings;
     private final Map<String, LDServerThread> pendingClients;
     private final Map<String, LDServerThread> clients;
     
     // Game variables
-    private State state;
+    private GameState state;
 
-    public LDServer(final Map<String, Object> settings) throws IOException {
+    public LDServer(Settings settings) throws IOException {
         this.settings = settings;
         pendingClients = new HashMap<String, LDServerThread>();
-        clients = new HashMap<String, LDServerThread>((int)((Integer) settings.get("maxClients") / 0.75) + 1);
+        clients = new HashMap<String, LDServerThread>((int)(settings.maxPlayers / 0.75) + 1);
         socket = new ServerSocket(0);
         socket.setSoTimeout(2000);
-        state = State.PREGAME;
+        state = new GameState(settings);
         thread = new Thread(this);
         thread.start();
     }
@@ -50,13 +49,15 @@ public class LDServer implements Runnable {
         
         if (pendingClients.containsKey(clientName)) {
             // Messages from pending clients
-            if (msg.startsWith("HELO") && state == State.PREGAME) {
+            if (msg.startsWith("HELO") && !state.allReady()) {
                 String newName = msg.substring(5);
                 for (int i=1; clients.containsKey(newName); i++)
                     newName = msg.substring(5) + " (" + i + ")";
                 LDServerThread client = pendingClients.remove(clientName);
                 client.setClientName(newName);
                 clients.put(newName, client);
+                
+                //TODO Add player to game
                 
                 String response = "HELO " + newName + " " + (clients.size() - 1);
                 for (String name : clients.keySet())
@@ -68,18 +69,8 @@ public class LDServer implements Runnable {
             }
         } else if (clients.containsKey(clientName)) {
             // Messages from accepted clients
-            
-            // Stateless messages
             if (msg.startsWith("CHAT")) {
                 sendAll("CHAT " + clientName + ": " + msg.substring(5));
-            } else {        
-                // State-specific messages
-                switch (state) {
-                    case PREGAME:
-                        break;
-                    default:
-                        exit();
-                }
             }
         }
     }
@@ -102,10 +93,10 @@ public class LDServer implements Runnable {
         LDServerThread client;
         if ((client = clients.get(clientName)) == null) {
             client = pendingClients.get(clientName);
-            if (remove)
-                pendingClients.remove(clientName);
             if (client == null)
                 return;
+            if (remove)
+                pendingClients.remove(clientName);
             client.send("QUIT");
             client.close();
             return;
@@ -114,8 +105,8 @@ public class LDServer implements Runnable {
             clients.remove(clientName);
         client.send("QUIT");
         client.close();
-        sendAll("LEFT " + clientName);
         //TODO Remove player from game
+        sendAll("LEFT " + clientName);
     }
 
     public synchronized void exit() {
@@ -157,7 +148,7 @@ public class LDServer implements Runnable {
     @Override
     public void run() {
         while (state != null) {
-            if (state == State.PREGAME) {
+            if (!state.allReady()) {
                 Socket client;
                 try {
                     client = socket.accept();
@@ -165,7 +156,7 @@ public class LDServer implements Runnable {
                     continue;
                 }            
                 
-                if (clients.size() < (Integer) settings.get("maxClients")) {
+                if (clients.size() < settings.maxPlayers) {
                     try {
                         LDServerThread newClient = new LDServerThread(this, client);
                         pendingClients.put(newClient.getClientName(), newClient);
@@ -176,8 +167,8 @@ public class LDServer implements Runnable {
                 } else {
                     try {
                         PrintWriter out = new PrintWriter(client.getOutputStream(), true);
-                        out.println("ERR FULL");
-                        System.out.println("Server->" + client.getInetAddress().getHostAddress() + ": ERR FULL");
+                        out.println("ERR GAME FULL");
+                        System.out.println("Server->" + client.getInetAddress().getHostAddress() + ": ERR GAME FULL");
                         Thread.sleep(400);
                         out.close();
                         client.close();

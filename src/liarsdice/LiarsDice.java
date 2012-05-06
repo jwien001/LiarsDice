@@ -12,7 +12,6 @@ import java.awt.event.AdjustmentListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
-import java.util.HashMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoundedRangeModel;
@@ -29,6 +28,7 @@ import javax.swing.SwingConstants;
 
 import liarsdice.core.LDClient;
 import liarsdice.core.LDListener;
+import liarsdice.gamedata.Settings;
 
 public class LiarsDice implements ActionListener, LDListener {
 	
@@ -205,8 +205,7 @@ public class LiarsDice implements ActionListener, LDListener {
 			chatField.setText("");
 		} else if ("host".equalsIgnoreCase(cmd)) {
 		    //TODO Open settings dialog
-		    HashMap<String, Object> settings = new HashMap<String, Object>();
-		    settings.put("maxClients", 4);
+		    Settings settings = new Settings();
 		    
 		    waitingOnMessage = true;
 		    try {
@@ -267,7 +266,7 @@ public class LiarsDice implements ActionListener, LDListener {
     
     @Override
     public void gameError(String errorCode) {
-        if ("FULL".equals(errorCode)) {
+        if ("GAME FULL".equals(errorCode)) {
             String msg = "The game at " + joinGameDialog.getIPAddress() 
                     + " on port " + joinGameDialog.getPortNumber() + " is full.";
             JOptionPane.showMessageDialog(frame, msg, "Full Game", JOptionPane.ERROR_MESSAGE);
