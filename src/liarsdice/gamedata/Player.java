@@ -1,6 +1,7 @@
 package liarsdice.gamedata;
 
 public class Player {
+    
     private String name;
     private int[] dice;
     private Bid lastBid;

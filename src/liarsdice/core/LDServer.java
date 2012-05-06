@@ -15,8 +15,7 @@ import liarsdice.gamedata.GameState;
 import liarsdice.gamedata.Settings;
 
 public class LDServer implements Runnable {
-
-    // Networking variables
+    
     private final ServerSocket socket;
     private String ipAddress;
     private final Thread thread;
@@ -24,7 +23,6 @@ public class LDServer implements Runnable {
     private final Map<String, LDServerThread> pendingClients;
     private final Map<String, LDServerThread> clients;
     
-    // Game variables
     private GameState state;
 
     public LDServer(Settings settings) throws IOException {
@@ -52,7 +50,7 @@ public class LDServer implements Runnable {
             if (msg.startsWith("HELO") && !state.allReady()) {
                 String newName = msg.substring(5);
                 for (int i=1; clients.containsKey(newName); i++)
-                    newName = msg.substring(5) + " (" + i + ")";
+                    newName = msg.substring(5) + "(" + i + ")";
                 LDServerThread client = pendingClients.remove(clientName);
                 client.setClientName(newName);
                 clients.put(newName, client);

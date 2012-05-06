@@ -1,6 +1,7 @@
 package liarsdice.gamedata;
 
 public class Settings {
+    
     public int maxPlayers;
     public int startingDice;
     public BiddingRule biddingRule;

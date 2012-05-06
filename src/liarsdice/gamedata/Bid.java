@@ -1,6 +1,7 @@
 package liarsdice.gamedata;
 
 public class Bid {
+    
     public final int quantity;
     public final int value;
     

@@ -20,9 +20,10 @@ public class LDClient implements Runnable {
     private Thread thread;
     private LDListener listener;
     
-    private boolean outputEnabled = true;
+    private boolean outputEnabled;
     
     private GameState state;
+    private String clientName;
 
     /**
      * Constructs a Liar's Dice client that will attempt to join a game hosted at 
@@ -63,6 +64,10 @@ public class LDClient implements Runnable {
         if (clientName == null || (clientName = clientName.trim()).length() == 0)
             throw new IllegalArgumentException("Client name must be more than whitespace.");
         
+        outputEnabled = true;
+        state = null;
+        this.clientName = clientName;
+        
         this.listener = listener;
         socket = new Socket();
         socket.connect(new InetSocketAddress(ipAddress, portNumber), 4000);
@@ -82,6 +87,15 @@ public class LDClient implements Runnable {
      */
     public GameState getGameState() {
         return state;
+    }
+    
+    /**
+     * Returns this client's name as recognized by the server.
+     * 
+     * @return the name of this client
+     */
+    public String getName() {
+        return clientName;
     }
     
     /**

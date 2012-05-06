@@ -31,6 +31,8 @@ import liarsdice.core.LDListener;
 import liarsdice.gamedata.Settings;
 
 public class LiarsDice implements ActionListener, LDListener {
+    
+    public static final int MAX_PLAYERS = 8;
 	
 	private JFrame frame;
 	private JPanel[] playerPanels;
