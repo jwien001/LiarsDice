@@ -6,6 +6,7 @@ public class GameState {
     
     private Settings settings;
     private ArrayList<Player> players;
+    private int numReady;
     private int numWithDice;
     private int totalDice;
     private int currPlayer;
@@ -15,6 +16,7 @@ public class GameState {
     public GameState() {
         settings = null;
         players = new ArrayList<Player>();
+        numReady = 0;
         numWithDice = 0;
         totalDice = 0;
         currPlayer = -1;
@@ -25,6 +27,8 @@ public class GameState {
     public GameState(Settings settings) {
         this.settings = settings;
         players = new ArrayList<Player>(settings.maxPlayers);
+        numReady = 0;
+        numWithDice = 0;
         totalDice = 0;
         currPlayer = -1;
         palafico = false;
@@ -37,14 +41,7 @@ public class GameState {
      * @return true if all players are ready; false otherwise
      */
     public boolean allReady() {
-        if (players == null || players.isEmpty())
-            return false;
-        
-        for (Player p : players)
-            if (!p.isReady())
-                return false;
-        
-        return true;
+        return numReady == players.size() && players.size() > 0;
     }
     
     public int numPlayersWithDice() {
@@ -97,7 +94,10 @@ public class GameState {
     public Player removePlayer(String name) {
         Player p = getPlayer(name);
         
-        if (players.remove(p)) {            
+        if (players.remove(p)) {          
+            if (p.isReady())
+                numReady--;
+            
             if (p.getDiceCount() > 0) {
                 numWithDice--;
                 totalDice -= p.getDiceCount();
@@ -107,6 +107,11 @@ public class GameState {
         }
         
         return null;
+    }
+    
+    public void setReady(String name, boolean ready) {
+        getPlayer(name).setReady(ready);
+        numReady += ready ? 1 : -1;
     }
     
     /**

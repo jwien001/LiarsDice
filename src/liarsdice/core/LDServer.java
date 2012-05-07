@@ -71,6 +71,12 @@ public class LDServer implements Runnable {
             // Messages from accepted clients
             if (msg.startsWith("CHAT")) {
                 sendAll("CHAT " + clientName + ": " + msg.substring(5));
+            } else if (msg.startsWith("READY")) {
+                state.setReady(clientName, true);
+                sendAll("READY " + clientName);
+            } else if (msg.startsWith("NOTREADY")) {
+                state.setReady(clientName, false);
+                sendAll("NOTREADY " + clientName);
             }
         }
     }

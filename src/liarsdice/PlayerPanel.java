@@ -31,8 +31,10 @@ public class PlayerPanel extends JPanel {
 
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, 239, 159);
-        g.setColor(Color.BLACK);
+        g.setColor(player.isReady() ? Color.GREEN : Color.BLACK);
         g.drawRect(0, 0, 239, 159);
+        
+        g.setColor(Color.BLACK);
         g.drawString(player.getName(), 8, 16);
     }
 }

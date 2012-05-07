@@ -37,7 +37,7 @@ public class LiarsDice implements ActionListener, LDListener {
 	private PlayerPanel[] playerPanels;
 	private JTextArea messagePanel;
 	private JPanel actionPanel, chatPanel;
-	private JButton hostButton, joinButton, quitButton;
+	private JButton hostButton, joinButton, quitButton, readyButton;
 	private JTextArea chatArea;
 	private JTextField chatField;
 	
@@ -130,6 +130,11 @@ public class LiarsDice implements ActionListener, LDListener {
 		quitButton.setHorizontalTextPosition(SwingConstants.CENTER);
 		quitButton.addActionListener(this);
 		quitButton.setActionCommand("quit");
+		
+		readyButton = new JButton("Ready");
+		readyButton.setHorizontalTextPosition(SwingConstants.CENTER);
+		readyButton.addActionListener(this);
+		readyButton.setActionCommand("ready");
 		
 		gamePanel.add(actionPanel, BorderLayout.SOUTH);
 		
@@ -259,7 +264,15 @@ public class LiarsDice implements ActionListener, LDListener {
 		        client.exit();
 		        resetToMainMenu();
 		    }
-		}
+		} else if ("ready".equalsIgnoreCase(cmd)) {
+		    client.setReady(true);
+		    readyButton.setText("Not Ready");
+            readyButton.setActionCommand("notready");
+		} else if ("notready".equalsIgnoreCase(cmd)) {
+            client.setReady(false);
+            readyButton.setText("Ready");
+            readyButton.setActionCommand("ready");
+        }
 	}
 
     @Override
@@ -277,7 +290,11 @@ public class LiarsDice implements ActionListener, LDListener {
             chatPanel.setVisible(true);
             if (quitButton.getParent() != actionPanel)
                 actionPanel.add(quitButton);
-            //TODO Add Ready button
+            if (readyButton.getParent() != actionPanel) {
+                readyButton.setText("Ready");
+                readyButton.setActionCommand("ready");
+                actionPanel.add(readyButton, 0);
+            }
             messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
         }
 

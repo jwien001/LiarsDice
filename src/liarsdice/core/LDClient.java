@@ -132,6 +132,10 @@ public class LDClient implements Runnable {
         sendToServer("CHAT " +  msg);
     }
     
+    public void setReady(boolean ready) {
+        sendToServer((ready ? "" : "NOT") + "READY");
+    }
+    
     private synchronized void handle(String msg) {
         if (msg.startsWith("QUIT")) {
             gameError("HOST QUIT");
@@ -160,9 +164,17 @@ public class LDClient implements Runnable {
             String[] players = msg.split("\\s+");
             for (int i=0; i<players.length; i+=2) {
                 Player p = state.addPlayer(players[i]);
-                p.setReady(Boolean.parseBoolean(players[i+1]));
+                state.setReady(p.getName(), Boolean.parseBoolean(players[i+1]));
             }
                 
+            gameUpdate();
+        } else if (msg.startsWith("READY")) {
+            state.setReady(msg.substring(6), true);
+            
+            gameUpdate();
+        } else if (msg.startsWith("NOTREADY")) {
+            state.setReady(msg.substring(9), false);
+            
             gameUpdate();
         } else if (msg.startsWith("ERR")) {
             gameError(msg.substring(4));
