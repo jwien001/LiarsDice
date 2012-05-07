@@ -37,9 +37,8 @@ public class LiarsDice implements ActionListener, LDListener {
 	private JFrame frame;
 	private JPanel[] playerPanels;
 	private JTextArea messagePanel;
-	private JPanel actionPanel;
+	private JPanel actionPanel, chatPanel;
 	private JButton hostButton, joinButton;
-	private JPanel chatPanel;
 	private JTextArea chatArea;
 	private JTextField chatField;
 	
@@ -215,15 +214,18 @@ public class LiarsDice implements ActionListener, LDListener {
             } catch (IOException e) {
                 String msg = "Failed to initialize a game.";
                 JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
                 return;
             } catch (IllegalArgumentException e) {
                 JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
                 return;
             }
-		    if (waitingOnMessage)
-		        actionPanel.removeAll();
-		    joinGameDialog.dispose();
-		    frame.pack();
+		    if (waitingOnMessage) {
+                actionPanel.removeAll();
+                frame.pack();
+            }
+            joinGameDialog.dispose();
 		} else if ("join".equalsIgnoreCase(cmd)) {
 		    joinGameDialog.display();
 		} else if ("joinSettings".equalsIgnoreCase(cmd)) {
@@ -238,15 +240,18 @@ public class LiarsDice implements ActionListener, LDListener {
                 String msg = "Failed to connect to the server at " + joinGameDialog.getIPAddress() 
                             + " on port " + joinGameDialog.getPortNumber() + ".";
                 JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
                 return;
             } catch (IllegalArgumentException e) {
                 JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
                 return;
             }
-		    if (waitingOnMessage)
+		    if (waitingOnMessage) {
                 actionPanel.removeAll();
+                frame.pack();
+		    }
             joinGameDialog.dispose();
-            frame.pack();
 		}
 	}
 

@@ -22,7 +22,7 @@ public class Player {
         return dice;
     }
     
-    public int getNumDice() {
+    public int getDiceCount() {
         return dice.length;
     }
     

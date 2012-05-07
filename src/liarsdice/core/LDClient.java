@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import liarsdice.gamedata.GameState;
+import liarsdice.gamedata.Player;
 import liarsdice.gamedata.Settings;
 
 public class LDClient implements Runnable {
@@ -51,7 +52,8 @@ public class LDClient implements Runnable {
      * @param listener the object that should be notified when new data is received from the server
      * @throws IOException if the server or client fails to initialize properly
      */
-    public LDClient(Settings settings, String clientName, LDListener listener) throws IOException {
+    public LDClient(Settings settings, String clientName, LDListener listener) 
+            throws IOException {
         server = new LDServer(settings);
         
         init("127.0.0.1", server.getPortNumber(), clientName, listener);
@@ -61,8 +63,8 @@ public class LDClient implements Runnable {
     
     private void init(String ipAddress, int portNumber, String clientName, LDListener listener) 
             throws IOException {
-        if (clientName == null || (clientName = clientName.trim()).length() == 0)
-            throw new IllegalArgumentException("Client name must be more than whitespace.");
+        if (clientName == null || (clientName = clientName.trim()).length() == 0 || clientName.split("\\s+").length > 1)
+            throw new IllegalArgumentException("Client name must not contain any whitespace.");
         
         outputEnabled = true;
         state = null;
@@ -139,6 +141,20 @@ public class LDClient implements Runnable {
         } else if (msg.startsWith("LEFT")) {
             chatMessage("*** " + msg.substring(5) + " has left the game.");
         } else if (msg.startsWith("HELO")) {
+            msg = msg.substring(5);
+            
+            clientName = msg.substring(0, msg.indexOf(" "));
+            msg = msg.substring(msg.indexOf(" ") + 1);
+            
+            state = new GameState(new Settings(msg.substring(0, msg.indexOf("|"))));
+            msg = msg.substring(msg.indexOf("|") + 2);
+            
+            String[] players = msg.split("\\s+");
+            for (int i=0; i<players.length; i+=2) {
+                Player p = state.addPlayer(players[i]);
+                p.setReady(Boolean.parseBoolean(players[i+1]));
+            }
+                
             gameUpdate();
         } else if (msg.startsWith("ERR")) {
             gameError(msg.substring(4));

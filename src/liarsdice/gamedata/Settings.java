@@ -21,4 +21,31 @@ public class Settings {
         openWithOnes = false;
         palafico = false;
     }
+    
+    public Settings(String dataStr) {
+        String[] strs = dataStr.split("\\s+");
+        maxPlayers = Integer.parseInt(strs[0]);
+        startingDice = Integer.parseInt(strs[1]);
+        biddingRule = BiddingRule.valueOf(strs[2]);
+        callOutOfOrder = Boolean.parseBoolean(strs[3]);
+        spotOn = Boolean.parseBoolean(strs[4]);
+        onesWild = Boolean.parseBoolean(strs[5]);
+        openWithOnes = Boolean.parseBoolean(strs[6]);
+        palafico = Boolean.parseBoolean(strs[7]);
+    }
+    
+    @Override
+    public String toString() {
+        String str = "";
+        str += maxPlayers;
+        str += " " + startingDice;
+        str += " " + biddingRule.name();
+        str += " " + (callOutOfOrder ? "true" : "false");
+        str += " " + (spotOn ? "true" : "false");
+        str += " " + (onesWild ? "true" : "false");
+        str += " " + (openWithOnes ? "true" : "false");
+        str += " " + (palafico ? "true" : "false");
+        str += "|";
+        return str;
+    }
 }

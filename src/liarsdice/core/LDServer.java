@@ -55,14 +55,15 @@ public class LDServer implements Runnable {
                 client.setClientName(newName);
                 clients.put(newName, client);
                 
-                //TODO Add player to game
+                state.addPlayer(newName);
                 
-                String response = "HELO " + newName + " " + (clients.size() - 1);
-                for (String name : clients.keySet())
+                String response = "HELO " + newName + " " + settings;
+                for (String name : clients.keySet()) {
+                    response += " " + name + " " + (state.getPlayer(name).isReady() ? "R" : "n");
                     if (!name.equals(newName)) {
-                        response += " " + name;
                         clients.get(name).send("JOIN " + newName);
                     }
+                }
                 client.send(response);
             }
         } else if (clients.containsKey(clientName)) {
@@ -103,7 +104,10 @@ public class LDServer implements Runnable {
             clients.remove(clientName);
         client.send("QUIT");
         client.close();
-        //TODO Remove player from game
+
+        if (state != null)
+            state.removePlayer(clientName);
+        
         sendAll("LEFT " + clientName);
     }
 
