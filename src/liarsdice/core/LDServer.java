@@ -157,37 +157,42 @@ public class LDServer implements Runnable {
     @Override
     public void run() {
         while (state != null) {
-            if (!state.allReady()) {
-                Socket client;
+            Socket client;
+            try {
+                client = socket.accept();
+            } catch (IOException e) {
+                continue;
+            }            
+            
+            String error = null;
+            if (clients.size() >= settings.maxPlayers) {
+                error = "GAME FULL";
+            } else if (state.allReady()) {
+                error = "GAME IN PROGRESS";
+            } else {
                 try {
-                    client = socket.accept();
+                    LDServerThread newClient = new LDServerThread(this, client);
+                    pendingClients.put(newClient.getClientName(), newClient);
+                    newClient.start();
                 } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            
+            if (error != null) {
+                try {
+                    PrintWriter out = new PrintWriter(client.getOutputStream(), true);
+                    out.println("ERR " + error);
+                    System.out.println("Server->" + client.getInetAddress().getHostAddress() + ": ERR " + error);
+                    Thread.sleep(400);
+                    out.close();
+                    client.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                     continue;
-                }            
-                
-                if (clients.size() < settings.maxPlayers) {
-                    try {
-                        LDServerThread newClient = new LDServerThread(this, client);
-                        pendingClients.put(newClient.getClientName(), newClient);
-                        newClient.start();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    try {
-                        PrintWriter out = new PrintWriter(client.getOutputStream(), true);
-                        out.println("ERR GAME FULL");
-                        System.out.println("Server->" + client.getInetAddress().getHostAddress() + ": ERR GAME FULL");
-                        Thread.sleep(400);
-                        out.close();
-                        client.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        continue;
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        continue;
-                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    continue;
                 }
             }
         }

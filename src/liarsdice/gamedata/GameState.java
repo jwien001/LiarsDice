@@ -36,12 +36,12 @@ public class GameState {
     }
     
     /**
-     * Returns whether or not all players are ready.
+     * Returns whether or not there are 2 or more players and all of them are ready.
      * 
-     * @return true if all players are ready; false otherwise
+     * @return true if there are 2 or more players and all of them are ready; false otherwise
      */
     public boolean allReady() {
-        return numReady == players.size() && players.size() > 0;
+        return players.size() > 1 && numReady == players.size();
     }
     
     public int numPlayersWithDice() {

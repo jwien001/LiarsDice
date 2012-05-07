@@ -22,6 +22,7 @@ public interface LDListener {
      * <li>HOST QUIT
      * <li>CONNECTION LOST
      * <li>GAME FULL
+     * <li>GAME IN PROGRESS
      * </ul>
      * 
      * @param errorCode a message indicating the type of error

@@ -32,6 +32,7 @@ import liarsdice.gamedata.Settings;
 public class LiarsDice implements ActionListener, LDListener {
     
     public static final int MAX_PLAYERS = 8;
+    public static final int MAX_DICE = 10;
 	
 	private JFrame frame;
 	private PlayerPanel[] playerPanels;
@@ -309,7 +310,7 @@ public class LiarsDice implements ActionListener, LDListener {
                 playerPanels[x].setData(state, state.getPlayers().get(actualIndex));
                 
                 // Calculate the which panel should display the next player
-                nextPanel = Math.round(8.0f * ++relativeIndex / state.numPlayers());
+                nextPanel = Math.round((float) MAX_PLAYERS *  (float) ++relativeIndex / (float) state.numPlayers());
             } else
                 playerPanels[x].setData(null, null);
             
@@ -322,9 +323,13 @@ public class LiarsDice implements ActionListener, LDListener {
     @Override
     public void gameError(String errorCode) {
         if ("GAME FULL".equals(errorCode)) {
-            String msg = "The game at " + joinGameDialog.getIPAddress() 
-                    + " on port " + joinGameDialog.getPortNumber() + " is full.";
+            String msg = "The game at " + joinGameDialog.getIPAddress() + " on port " + joinGameDialog.getPortNumber() + " is full.";
             JOptionPane.showMessageDialog(frame, msg, "Full Game", JOptionPane.ERROR_MESSAGE);
+            resetToMainMenu();
+        } else if ("GAME IN PROGRESS".equals(errorCode)) {
+            String msg = "The game at " + joinGameDialog.getIPAddress() + " on port " + joinGameDialog.getPortNumber() + " is already in progress."
+                    + " You may be able to join when the game has finished.";
+            JOptionPane.showMessageDialog(frame, msg, "Game In Progress", JOptionPane.ERROR_MESSAGE);
             resetToMainMenu();
         } else if ("CONNECTION LOST".equals(errorCode)) {
             String msg = "The connection to the game was lost.";
