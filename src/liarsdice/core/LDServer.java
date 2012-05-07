@@ -60,7 +60,7 @@ public class LDServer implements Runnable {
                 
                 String response = "HELO " + newName + " " + settings;
                 for (Player p : state.getPlayers()) {
-                    response += " " + p.getName() + " " + (p.isReady() ? "R" : "n");
+                    response += " " + p.getName() + " " + (p.isReady() ? "true" : "false");
                     if (!p.getName().equals(newName)) {
                         clients.get(p.getName()).send("JOIN " + newName);
                     }
@@ -74,6 +74,17 @@ public class LDServer implements Runnable {
             } else if (msg.startsWith("READY")) {
                 state.setReady(clientName, true);
                 sendAll("READY " + clientName);
+                
+                if (state.allReady()) {
+                    state.startNewGame(true);
+                    
+                    for (Player p : state.getPlayers()) {
+                        String newGameMsg = "NEWGAME " + state.getCurrentPlayer().getName();
+                        for (int value : p.getDice())
+                            newGameMsg += " " + value;
+                        clients.get(p.getName()).send(newGameMsg);
+                    }
+                }
             } else if (msg.startsWith("NOTREADY")) {
                 state.setReady(clientName, false);
                 sendAll("NOTREADY " + clientName);

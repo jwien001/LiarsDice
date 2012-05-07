@@ -32,7 +32,7 @@ public class GameState {
         totalDice = 0;
         currPlayer = -1;
         palafico = false;
-        onesWild = settings.onesWild && !settings.openWithOnes && !palafico;
+        onesWild = settings.onesWild && !settings.openWithOnes;
     }
     
     /**
@@ -50,6 +50,50 @@ public class GameState {
     
     public int numPlayers() {
         return players.size();
+    }
+    
+    public int getTotalDice() {
+        return totalDice;
+    }
+    
+    public void startNewGame(boolean randomize) {
+        for (Player p : players)
+            p.setDice(new int[settings.startingDice]);
+        numWithDice = players.size();
+        totalDice = numWithDice * settings.startingDice;
+        if (randomize)
+            currPlayer = (int) (Math.random() * players.size());
+        palafico = false;
+        onesWild = settings.onesWild && !settings.openWithOnes;
+        
+        startNewRound(randomize);
+    }
+    
+    public void startNewRound(boolean randomize) {
+        if (randomize)
+            for (Player p : players)
+                for (int i=0; i<p.getDiceCount(); i++)
+                    p.getDice()[i] = (int) (Math.random() * settings.maxDiceValue) + 1;
+    }
+    
+    /**
+     * Returns the player whose turn it is.
+     * 
+     * @return the {@link Player} whose turn it is
+     */
+    public Player getCurrentPlayer() {
+        if (currPlayer < 0 || currPlayer >= players.size())
+            return null;
+        return players.get(currPlayer);
+    }
+    
+    /**
+     * Sets the current player.
+     * 
+     * @param name the {@link Player} whose turn it is
+     */
+    public void setCurrentPlayer(String name) {
+        currPlayer = players.indexOf(new Player(name));
     }
     
     /**
@@ -103,15 +147,29 @@ public class GameState {
                 totalDice -= p.getDiceCount();
             }
             
+            currPlayer %= players.size();
+            
+            if (players.size() == 1)
+                setReady(players.get(0).getName(), false);
+            
             return p;
         }
         
         return null;
     }
     
+    /**
+     * Sets the specified player's ready status to the specified value.
+     * 
+     * @param name the name of the player
+     * @param ready the ready status to set
+     */
     public void setReady(String name, boolean ready) {
-        getPlayer(name).setReady(ready);
-        numReady += ready ? 1 : -1;
+        Player p = getPlayer(name);
+        boolean old = p.isReady();
+        p.setReady(ready);
+        if (old != ready)
+            numReady += ready ? 1 : -1;
     }
     
     /**

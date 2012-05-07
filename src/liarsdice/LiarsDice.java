@@ -27,6 +27,7 @@ import javax.swing.SwingConstants;
 import liarsdice.core.LDClient;
 import liarsdice.core.LDListener;
 import liarsdice.gamedata.GameState;
+import liarsdice.gamedata.Player;
 import liarsdice.gamedata.Settings;
 
 public class LiarsDice implements ActionListener, LDListener {
@@ -297,6 +298,9 @@ public class LiarsDice implements ActionListener, LDListener {
                 actionPanel.add(readyButton, 0);
             }
             messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
+        } else {
+            if (state.getCurrentPlayer() != null)
+                messagePanel.setText("Total dice: " + state.getTotalDice() + "\n" + state.getCurrentPlayer().getName() + "'s turn");
         }
 
         // Players should be displayed clockwise from this user, which will always be displayed at the bottom

@@ -31,10 +31,25 @@ public class PlayerPanel extends JPanel {
 
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, 239, 159);
-        g.setColor(player.isReady() ? Color.GREEN : Color.BLACK);
+        
+        if (!state.allReady() && player.isReady())
+            g.setColor(Color.GREEN);
+        else if (state.allReady() && player.equals(state.getCurrentPlayer()))
+            g.setColor(Color.YELLOW);
+        else
+            g.setColor(Color.BLACK);
         g.drawRect(0, 0, 239, 159);
         
         g.setColor(Color.BLACK);
         g.drawString(player.getName(), 8, 16);
+        
+        if (state.allReady()) {
+            g.drawString("Last bid: " + (player.getLastBid() == null ? "none" : player.getLastBid()), 8, 32);
+            
+            String dice = "Dice:";
+            for (int value : player.getDice())
+                dice += " " + value;
+            g.drawString(dice, 8, 48);
+        }
     }
 }

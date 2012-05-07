@@ -159,7 +159,7 @@ public class LDClient implements Runnable {
             msg = msg.substring(msg.indexOf(" ") + 1);
             
             state = new GameState(new Settings(msg.substring(0, msg.indexOf("|"))));
-            msg = msg.substring(msg.indexOf("|") + 2);
+            msg = msg.substring(msg.indexOf(Settings.DELIM) + 2);
             
             String[] players = msg.split("\\s+");
             for (int i=0; i<players.length; i+=2) {
@@ -176,6 +176,18 @@ public class LDClient implements Runnable {
             state.setReady(msg.substring(9), false);
             
             gameUpdate();
+        } else if (msg.startsWith("NEWGAME")) {
+            state.startNewGame(false);
+            
+            String[] gameData = msg.substring(8).split("\\s+");
+            state.setCurrentPlayer(gameData[0]);
+            
+            Player p = state.getPlayer(clientName);
+            for (int i=1; i<gameData.length; i++)
+                p.getDice()[i-1] = Integer.parseInt(gameData[i]);
+
+            gameUpdate();
+            chatMessage("*** The game has begun! " + gameData[0] + " will open the first round.");
         } else if (msg.startsWith("ERR")) {
             gameError(msg.substring(4));
             outputEnabled = false;
