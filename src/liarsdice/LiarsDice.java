@@ -190,6 +190,7 @@ public class LiarsDice implements ActionListener, LDListener {
         actionPanel.add(hostButton);
         actionPanel.add(joinButton);
         messagePanel.setText("LIAR'S DICE");
+        frame.setTitle("Liar's Dice");
         for (PlayerPanel p : playerPanels) {
             p.setData(null, null);
             p.repaint();
@@ -269,10 +270,13 @@ public class LiarsDice implements ActionListener, LDListener {
     @Override
     public synchronized void gameUpdate() {
         GameState state = client.getGameState();
+        
+        frame.setTitle("Liar's Dice - " + client.getName());
     
         if (!state.allReady()) {
             chatPanel.setVisible(true);
-            actionPanel.add(quitButton);
+            if (quitButton.getParent() != actionPanel)
+                actionPanel.add(quitButton);
             //TODO Add Ready button
             messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
         }
