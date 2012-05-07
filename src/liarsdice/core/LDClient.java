@@ -106,11 +106,13 @@ public class LDClient implements Runnable {
      */
     public void exit() {
         state = null;
-        if (server != null)
+        if (server != null) {
+            outputEnabled = false;
             server.exit();
-        else if (outputEnabled)
+        } else if (outputEnabled) {
+            outputEnabled = false;
             sendToServer("QUIT");
-        outputEnabled = false;
+        }
         
         try {
             out.close();
@@ -138,11 +140,13 @@ public class LDClient implements Runnable {
             chatMessage(msg.substring(5));
         } else if (msg.startsWith("JOIN")) {
             state.addPlayer(msg.substring(5));
-            
+
+            gameUpdate();
             chatMessage("*** " + msg.substring(5) + " has joined the game.");
         } else if (msg.startsWith("LEFT")) {
             state.removePlayer(msg.substring(5));
             
+            gameUpdate();
             chatMessage("*** " + msg.substring(5) + " has left the game.");
         } else if (msg.startsWith("HELO")) {
             msg = msg.substring(5);

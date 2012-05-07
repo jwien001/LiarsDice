@@ -2,8 +2,6 @@ package liarsdice;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -28,6 +26,7 @@ import javax.swing.SwingConstants;
 
 import liarsdice.core.LDClient;
 import liarsdice.core.LDListener;
+import liarsdice.gamedata.GameState;
 import liarsdice.gamedata.Settings;
 
 public class LiarsDice implements ActionListener, LDListener {
@@ -35,25 +34,22 @@ public class LiarsDice implements ActionListener, LDListener {
     public static final int MAX_PLAYERS = 8;
 	
 	private JFrame frame;
-	private JPanel[] playerPanels;
+	private PlayerPanel[] playerPanels;
 	private JTextArea messagePanel;
 	private JPanel actionPanel, chatPanel;
-	private JButton hostButton, joinButton;
+	private JButton hostButton, joinButton, quitButton;
 	private JTextArea chatArea;
 	private JTextField chatField;
 	
 	private JoinGameDialog joinGameDialog;
 	
 	private LDClient client;
-	
-	private boolean waitingOnMessage;
 
 	public static void main(String[] args) {
 		new LiarsDice();
 	}
 	
-	@SuppressWarnings("serial")
-    public LiarsDice() {
+	public LiarsDice() {
 		frame = new JFrame("Liar's Dice");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(new BorderLayout());
@@ -90,15 +86,9 @@ public class LiarsDice implements ActionListener, LDListener {
         JPanel graphicsPanel = new JPanel(new GridLayout(3, 3));
         graphicsPanel.setPreferredSize(new Dimension(720, 480));
         
-        playerPanels = new JPanel[8];
+        playerPanels = new PlayerPanel[8];
         for (int i=0; i<playerPanels.length; i++) {
-            final int index = i;
-            playerPanels[i] = new JPanel() {
-                @Override
-                public void paintComponent(final Graphics g) {
-                    render((Graphics2D) g, index);
-                }
-            };
+            playerPanels[i] = new PlayerPanel();
             playerPanels[i].setPreferredSize(new Dimension(240, 160));
         }
         
@@ -135,6 +125,11 @@ public class LiarsDice implements ActionListener, LDListener {
 		joinButton.addActionListener(this);
 		joinButton.setActionCommand("join");		
 		actionPanel.add(joinButton);
+		
+		quitButton = new JButton("Quit");
+		quitButton.setHorizontalTextPosition(SwingConstants.CENTER);
+		quitButton.addActionListener(this);
+		quitButton.setActionCommand("quit");
 		
 		gamePanel.add(actionPanel, BorderLayout.SOUTH);
 		
@@ -189,12 +184,18 @@ public class LiarsDice implements ActionListener, LDListener {
 	
 	public void resetToMainMenu() {
 	    client = null;
+        chatPanel.setVisible(false);
+        chatArea.setText(null);
 	    actionPanel.removeAll();
         actionPanel.add(hostButton);
         actionPanel.add(joinButton);
         messagePanel.setText("LIAR'S DICE");
-        chatPanel.setVisible(false);
+        for (PlayerPanel p : playerPanels) {
+            p.setData(null, null);
+            p.repaint();
+        }
         frame.pack();
+        frame.repaint();
 	}
 
 	@Override
@@ -208,50 +209,55 @@ public class LiarsDice implements ActionListener, LDListener {
 		    //TODO Open settings dialog
 		    Settings settings = new Settings();
 		    
-		    waitingOnMessage = true;
-		    try {
-                client = new LDClient(settings, "Host", this);
-            } catch (IOException e) {
-                String msg = "Failed to initialize a game.";
-                JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
-                return;
-            } catch (IllegalArgumentException e) {
-                JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
-                return;
-            }
-		    if (waitingOnMessage) {
+		    synchronized (this) {
+    		    try {
+                    client = new LDClient(settings, "Host", this);
+                } catch (IOException e) {
+                    String msg = "Failed to initialize a game.";
+                    JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                    return;
+                } catch (IllegalArgumentException e) {
+                    JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                    return;
+                }
                 actionPanel.removeAll();
                 frame.pack();
-            }
-            joinGameDialog.dispose();
+                joinGameDialog.dispose();
+		    }
 		} else if ("join".equalsIgnoreCase(cmd)) {
 		    joinGameDialog.display();
 		} else if ("joinSettings".equalsIgnoreCase(cmd)) {
 		    //TODO Validate join settings dialog
-		    waitingOnMessage = true;
-		    try {
-                client = new LDClient(joinGameDialog.getIPAddress(),
-                                      joinGameDialog.getPortNumber(),
-                                      joinGameDialog.getUsername(),
-                                      this);
-            } catch (IOException e) {
-                String msg = "Failed to connect to the server at " + joinGameDialog.getIPAddress() 
-                            + " on port " + joinGameDialog.getPortNumber() + ".";
-                JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
-                return;
-            } catch (IllegalArgumentException e) {
-                JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
-                return;
-            }
-		    if (waitingOnMessage) {
+		    
+		    synchronized (this) {
+    		    try {
+                    client = new LDClient(joinGameDialog.getIPAddress(),
+                                          joinGameDialog.getPortNumber(),
+                                          joinGameDialog.getUsername(),
+                                          this);
+                } catch (IOException e) {
+                    String msg = "Failed to connect to the server at " + joinGameDialog.getIPAddress() 
+                                + " on port " + joinGameDialog.getPortNumber() + ".";
+                    JOptionPane.showMessageDialog(frame, msg, "Error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                    return;
+                } catch (IllegalArgumentException e) {
+                    JOptionPane.showMessageDialog(frame, e.getMessage(), e.getClass().getName(), JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                    return;
+                }
                 actionPanel.removeAll();
                 frame.pack();
+                joinGameDialog.dispose();
 		    }
-            joinGameDialog.dispose();
+		} else if ("quit".equalsIgnoreCase(cmd)) {
+		    String msg = "Are you sure you want to quit this game?";
+		    if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(frame, msg, "Quit Game", JOptionPane.YES_NO_OPTION)) {
+		        client.exit();
+		        resetToMainMenu();
+		    }
 		}
 	}
 
@@ -261,14 +267,35 @@ public class LiarsDice implements ActionListener, LDListener {
     }
 
     @Override
-    public void gameUpdate() {
-        //TODO Fill out for real
-        waitingOnMessage = false;
-        chatPanel.setVisible(true);
-        actionPanel.removeAll();
-        //TODO Add Ready and Quit buttons
-        messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
+    public synchronized void gameUpdate() {
+        GameState state = client.getGameState();
+    
+        if (!state.allReady()) {
+            chatPanel.setVisible(true);
+            actionPanel.add(quitButton);
+            //TODO Add Ready button
+            messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
+        }
+
+        // Players should be displayed clockwise from this user, which will always be displayed at the bottom
+        // Relative index is from this player
+        int relativeIndex = 0;
+        int nextPanel = 0;
+        for (int x=0; x<MAX_PLAYERS; x++) {
+            if (x == nextPanel) {
+                // Translate the relative index into the actual index in the player list
+                int actualIndex = (state.getPlayers().indexOf(state.getPlayer(client.getName())) + relativeIndex) % state.numPlayers();
+                playerPanels[x].setData(state, state.getPlayers().get(actualIndex));
+                
+                // Calculate the which panel should display the next player
+                nextPanel = Math.round(8.0f * ++relativeIndex / state.numPlayers());
+            } else
+                playerPanels[x].setData(null, null);
+            
+            playerPanels[x].repaint();
+        }
         frame.pack();
+        frame.repaint();
     }
     
     @Override
@@ -288,11 +315,6 @@ public class LiarsDice implements ActionListener, LDListener {
             resetToMainMenu();
         }
     }
-	
-	public void render(Graphics2D g, int panelNum) {
-		g.drawRect(0, 0, 239, 159);
-		g.drawString("" + panelNum, 8, 16);
-	}
 }
 
 @SuppressWarnings("serial")

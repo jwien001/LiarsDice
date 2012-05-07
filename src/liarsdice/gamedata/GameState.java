@@ -51,6 +51,10 @@ public class GameState {
         return numWithDice;
     }
     
+    public int numPlayers() {
+        return players.size();
+    }
+    
     /**
      * Creates a new player with the given name and adds it to the game.
      * 
