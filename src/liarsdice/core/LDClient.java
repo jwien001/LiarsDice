@@ -137,8 +137,12 @@ public class LDClient implements Runnable {
         } else if (msg.startsWith("CHAT")) {
             chatMessage(msg.substring(5));
         } else if (msg.startsWith("JOIN")) {
+            state.addPlayer(msg.substring(5));
+            
             chatMessage("*** " + msg.substring(5) + " has joined the game.");
         } else if (msg.startsWith("LEFT")) {
+            state.removePlayer(msg.substring(5));
+            
             chatMessage("*** " + msg.substring(5) + " has left the game.");
         } else if (msg.startsWith("HELO")) {
             msg = msg.substring(5);

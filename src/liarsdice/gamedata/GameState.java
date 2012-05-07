@@ -104,4 +104,13 @@ public class GameState {
         
         return null;
     }
+    
+    /**
+     * Returns the list of all players in the game.
+     * 
+     * @return a non-null, possibly empty list of {@link Player}s.
+     */
+    public ArrayList<Player> getPlayers() {
+        return players;
+    }
 }

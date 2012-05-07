@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import liarsdice.gamedata.GameState;
+import liarsdice.gamedata.Player;
 import liarsdice.gamedata.Settings;
 
 public class LDServer implements Runnable {
@@ -58,10 +59,10 @@ public class LDServer implements Runnable {
                 state.addPlayer(newName);
                 
                 String response = "HELO " + newName + " " + settings;
-                for (String name : clients.keySet()) {
-                    response += " " + name + " " + (state.getPlayer(name).isReady() ? "R" : "n");
-                    if (!name.equals(newName)) {
-                        clients.get(name).send("JOIN " + newName);
+                for (Player p : state.getPlayers()) {
+                    response += " " + p.getName() + " " + (p.isReady() ? "R" : "n");
+                    if (!p.getName().equals(newName)) {
+                        clients.get(p.getName()).send("JOIN " + newName);
                     }
                 }
                 client.send(response);
