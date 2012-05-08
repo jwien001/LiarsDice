@@ -10,6 +10,10 @@ import java.awt.event.AdjustmentListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoundedRangeModel;
@@ -27,6 +31,7 @@ import javax.swing.SwingConstants;
 
 import liarsdice.core.LDClient;
 import liarsdice.core.LDListener;
+import liarsdice.gamedata.Bid;
 import liarsdice.gamedata.GameState;
 import liarsdice.gamedata.Settings;
 
@@ -303,7 +308,12 @@ public class LiarsDice implements ActionListener, LDListener {
         } else if ("spotOn".equalsIgnoreCase(cmd)) {
             
         } else if ("quantity".equalsIgnoreCase(cmd)) {
-            //TODO Update value combo box with valid bid values
+            HashMap<Integer, Integer> minBids = client.getGameState().getMinimumBids();
+            
+            valueCombo.removeAllItems();
+            for (int i = minBids.get(quantityCombo.getSelectedItem()); i<=client.getGameState().getSettings().maxDiceValue; i++)
+                valueCombo.addItem(Bid.displayNames[i]);
+            valueCombo.setSelectedIndex(0);
         }
 	}
 
@@ -333,12 +343,11 @@ public class LiarsDice implements ActionListener, LDListener {
             }
             
             messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
-        } else {
+        } else if (state.getCurrentPlayer() != null) {
             messagePanel.setText("Total dice: " + state.getTotalDice());
             if (state.isPalafico())
                 messagePanel.append("\nPalafico round!");
-            if (state.getCurrentPlayer() != null)
-                 messagePanel.append("\n" + state.getCurrentPlayer().getName() + "'s turn");
+            messagePanel.append("\n" + state.getCurrentPlayer().getName() + "'s turn");
             
             // Remove ready button
             if (readyButton.getParent() == actionPanel)
@@ -370,7 +379,19 @@ public class LiarsDice implements ActionListener, LDListener {
                 if (bidButton.getParent() != actionPanel)
                     actionPanel.add(bidButton, 0);
                 
-                //TODO Initialize combo boxes with valid bid values
+                HashMap<Integer, Integer> minBids = state.getMinimumBids();
+                List<Integer> quantities = new ArrayList<Integer>(minBids.keySet());
+                Collections.sort(quantities);
+                
+                quantityCombo.removeAllItems();
+                for (Integer i : quantities)
+                    quantityCombo.addItem(i);
+                quantityCombo.setSelectedIndex(0);
+                
+                valueCombo.removeAllItems();
+                for (int i = minBids.get(quantities.get(0)); i<=state.getSettings().maxDiceValue; i++)
+                    valueCombo.addItem(Bid.displayNames[i]);
+                valueCombo.setSelectedIndex(0);
                 
                 // Add value combo box
                 if (valueCombo.getParent() != actionPanel)

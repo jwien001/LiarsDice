@@ -1,6 +1,7 @@
 package liarsdice.gamedata;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class GameState {
     
@@ -11,6 +12,7 @@ public class GameState {
     private int totalDice;
     private int currPlayer;
     private Bid lastBid;
+    private HashMap<Integer, Integer> minimumBids;
     private boolean palafico;
     private boolean onesWild;
     
@@ -22,6 +24,7 @@ public class GameState {
         totalDice = 0;
         currPlayer = -1;
         lastBid = null;
+        minimumBids = new HashMap<Integer, Integer>();
         palafico = false;
         onesWild = false;
     }
@@ -34,6 +37,7 @@ public class GameState {
         totalDice = 0;
         currPlayer = -1;
         lastBid = null;
+        minimumBids = new HashMap<Integer, Integer>();
         palafico = false;
         onesWild = settings.onesWild && !settings.openWithOnes;
     }
@@ -74,9 +78,7 @@ public class GameState {
         totalDice = numWithDice * settings.startingDice;
         if (randomize)
             currPlayer = (int) (Math.random() * players.size());
-        lastBid = null;
         palafico = false;
-        onesWild = settings.onesWild && !settings.openWithOnes;
         
         startNewRound(randomize);
     }
@@ -85,7 +87,14 @@ public class GameState {
         if (randomize)
             for (Player p : players)
                 for (int i=0; i<p.getDiceCount(); i++)
-                    p.getDice()[i] = (int) (Math.random() * settings.maxDiceValue) + 1;
+                    p.getDice()[i] = (int) (Math.random() * settings.maxDiceValue) + 1;        
+
+        lastBid = null;
+        onesWild = settings.onesWild && !settings.openWithOnes && !palafico;
+        
+        minimumBids.clear();
+        for (int i = 1; i<=totalDice; i++)
+            minimumBids.put(i, (onesWild ? 2 : 1));
     }
     
     /**
@@ -115,6 +124,15 @@ public class GameState {
      */
     public Bid getLastBid() {
         return lastBid;
+    }
+    
+    /**
+     * Returns a map of the lowest valid bids. Quantities are mapped to the minimum value allowed for that quantity.
+     * 
+     * @return a non-null, possibly empty {@link HashMap} of the lowest valid bids
+     */
+    public HashMap<Integer, Integer> getMinimumBids() {
+        return minimumBids;
     }
     
     /**
