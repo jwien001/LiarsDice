@@ -15,6 +15,7 @@ import javax.swing.BorderFactory;
 import javax.swing.BoundedRangeModel;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -27,7 +28,6 @@ import javax.swing.SwingConstants;
 import liarsdice.core.LDClient;
 import liarsdice.core.LDListener;
 import liarsdice.gamedata.GameState;
-import liarsdice.gamedata.Player;
 import liarsdice.gamedata.Settings;
 
 public class LiarsDice implements ActionListener, LDListener {
@@ -39,7 +39,8 @@ public class LiarsDice implements ActionListener, LDListener {
 	private PlayerPanel[] playerPanels;
 	private JTextArea messagePanel;
 	private JPanel actionPanel, chatPanel;
-	private JButton hostButton, joinButton, quitButton, readyButton;
+	private JButton hostButton, joinButton, quitButton, readyButton, bidButton, lieButton, spotOnButton;
+	private JComboBox quantityCombo, valueCombo;
 	private JTextArea chatArea;
 	private JTextField chatField;
 	
@@ -137,6 +138,27 @@ public class LiarsDice implements ActionListener, LDListener {
 		readyButton.setHorizontalTextPosition(SwingConstants.CENTER);
 		readyButton.addActionListener(this);
 		readyButton.setActionCommand("ready");
+		
+		bidButton = new JButton("Bid");
+		bidButton.setHorizontalTextPosition(SwingConstants.CENTER);
+		bidButton.addActionListener(this);
+		bidButton.setActionCommand("bid");
+        
+        lieButton = new JButton("\"Lie!\"");
+        lieButton.setHorizontalTextPosition(SwingConstants.CENTER);
+        lieButton.addActionListener(this);
+        lieButton.setActionCommand("lie");
+        
+        spotOnButton = new JButton("\"Spot On!\"");
+        spotOnButton.setHorizontalTextPosition(SwingConstants.CENTER);
+        spotOnButton.addActionListener(this);
+        spotOnButton.setActionCommand("spotOn");
+        
+        quantityCombo = new JComboBox();
+        quantityCombo.addActionListener(this);
+        quantityCombo.setActionCommand("quantity");
+        
+        valueCombo = new JComboBox();
 		
 		gamePanel.add(actionPanel, BorderLayout.SOUTH);
 		
@@ -274,6 +296,14 @@ public class LiarsDice implements ActionListener, LDListener {
             client.setReady(false);
             readyButton.setText("Ready");
             readyButton.setActionCommand("ready");
+        } else if ("bid".equalsIgnoreCase(cmd)) {
+            
+        } else if ("lie".equalsIgnoreCase(cmd)) {
+            
+        } else if ("spotOn".equalsIgnoreCase(cmd)) {
+            
+        } else if ("quantity".equalsIgnoreCase(cmd)) {
+            //TODO Update value combo box with valid bid values
         }
 	}
 
@@ -290,17 +320,78 @@ public class LiarsDice implements ActionListener, LDListener {
     
         if (!state.allReady()) {
             chatPanel.setVisible(true);
+            
+            // Add Quit button
             if (quitButton.getParent() != actionPanel)
                 actionPanel.add(quitButton);
+            
+            // Add Ready button
             if (readyButton.getParent() != actionPanel) {
                 readyButton.setText("Ready");
                 readyButton.setActionCommand("ready");
                 actionPanel.add(readyButton, 0);
             }
+            
             messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
         } else {
+            messagePanel.setText("Total dice: " + state.getTotalDice());
+            if (state.isPalafico())
+                messagePanel.append("\nPalafico round!");
             if (state.getCurrentPlayer() != null)
-                messagePanel.setText("Total dice: " + state.getTotalDice() + "\n" + state.getCurrentPlayer().getName() + "'s turn");
+                 messagePanel.append("\n" + state.getCurrentPlayer().getName() + "'s turn");
+            
+            // Remove ready button
+            if (readyButton.getParent() == actionPanel)
+                actionPanel.remove(readyButton);
+            
+            // If this player's turn or out-of-order calls allowed
+            if (state.getCurrentPlayer().getName().equals(client.getName()) 
+                    || (state.getSettings().callOutOfOrder && state.getPlayer(client.getName()).getDiceCount() > 0)) {                
+                // Add Spot On button
+                if (state.getSettings().spotOn && spotOnButton.getParent() != actionPanel)
+                    actionPanel.add(spotOnButton, 0);
+                
+                // Add Lie button
+                if (lieButton.getParent() != actionPanel)
+                    actionPanel.add(lieButton, 0);
+            } else {                
+                //Remove Spot On button
+                if (spotOnButton.getParent() == actionPanel)
+                    actionPanel.remove(spotOnButton);
+                
+                //Remove Lie button
+                if (lieButton.getParent() == actionPanel)
+                    actionPanel.remove(lieButton);
+            }
+            
+            // If this player's turn
+            if (state.getCurrentPlayer().getName().equals(client.getName())) {                
+                // Add Bid button
+                if (bidButton.getParent() != actionPanel)
+                    actionPanel.add(bidButton, 0);
+                
+                //TODO Initialize combo boxes with valid bid values
+                
+                // Add value combo box
+                if (valueCombo.getParent() != actionPanel)
+                    actionPanel.add(valueCombo, 0);
+                
+                // Add quantity combo box
+                if (quantityCombo.getParent() != actionPanel)
+                    actionPanel.add(quantityCombo, 0);
+            } else {
+                // Remove Bid button
+                if (bidButton.getParent() == actionPanel)
+                    actionPanel.remove(bidButton);
+                
+                // Remove value combo box
+                if (valueCombo.getParent() == actionPanel)
+                    actionPanel.remove(valueCombo);
+                
+                // Remove quantity combo box
+                if (quantityCombo.getParent() == actionPanel)
+                    actionPanel.remove(quantityCombo);
+            }
         }
 
         // Players should be displayed clockwise from this user, which will always be displayed at the bottom

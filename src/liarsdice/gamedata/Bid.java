@@ -2,6 +2,8 @@ package liarsdice.gamedata;
 
 public class Bid {
     
+    public static final String[] displayNames = {"", "Ones", "Twos", "Threes", "Fours", "Fives", "Sixes"};
+    
     public final int quantity;
     public final int value;
     

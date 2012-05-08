@@ -10,6 +10,7 @@ public class GameState {
     private int numWithDice;
     private int totalDice;
     private int currPlayer;
+    private Bid lastBid;
     private boolean palafico;
     private boolean onesWild;
     
@@ -20,6 +21,7 @@ public class GameState {
         numWithDice = 0;
         totalDice = 0;
         currPlayer = -1;
+        lastBid = null;
         palafico = false;
         onesWild = false;
     }
@@ -31,8 +33,13 @@ public class GameState {
         numWithDice = 0;
         totalDice = 0;
         currPlayer = -1;
+        lastBid = null;
         palafico = false;
         onesWild = settings.onesWild && !settings.openWithOnes;
+    }
+    
+    public Settings getSettings() {
+        return settings;
     }
     
     /**
@@ -56,6 +63,10 @@ public class GameState {
         return totalDice;
     }
     
+    public boolean isPalafico() {
+        return palafico;
+    }
+    
     public void startNewGame(boolean randomize) {
         for (Player p : players)
             p.setDice(new int[settings.startingDice]);
@@ -63,6 +74,7 @@ public class GameState {
         totalDice = numWithDice * settings.startingDice;
         if (randomize)
             currPlayer = (int) (Math.random() * players.size());
+        lastBid = null;
         palafico = false;
         onesWild = settings.onesWild && !settings.openWithOnes;
         
@@ -94,6 +106,15 @@ public class GameState {
      */
     public void setCurrentPlayer(String name) {
         currPlayer = players.indexOf(new Player(name));
+    }
+    
+    /**
+     * Returns the last bid made in the current round.
+     * 
+     * @return the previous {@link Bid}
+     */
+    public Bid getLastBid() {
+        return lastBid;
     }
     
     /**

@@ -48,7 +48,7 @@ public class PlayerPanel extends JPanel {
             
             String dice = "Dice:";
             for (int value : player.getDice())
-                dice += " " + value;
+                dice += " " + (value == 0 ? "?" : value);
             g.drawString(dice, 8, 48);
         }
     }
