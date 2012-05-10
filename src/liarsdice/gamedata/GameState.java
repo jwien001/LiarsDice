@@ -202,13 +202,16 @@ public class GameState {
      * 
      * @param name the name of the player
      * @param ready the ready status to set
+     * @return true if the ready state was changed, false if no change was made
      */
-    public void setReady(String name, boolean ready) {
+    public boolean setReady(String name, boolean ready) {
         Player p = getPlayer(name);
-        boolean old = p.isReady();
-        p.setReady(ready);
-        if (old != ready)
+        if (p.isReady() != ready) {
+            p.setReady(ready);
             numReady += ready ? 1 : -1;
+            return true;
+        }
+        return false;
     }
     
     /**

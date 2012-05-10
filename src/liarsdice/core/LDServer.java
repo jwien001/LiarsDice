@@ -72,7 +72,9 @@ public class LDServer implements Runnable {
             if (msg.startsWith("CHAT")) {
                 sendAll("CHAT " + clientName + ": " + msg.substring(5));
             } else if (msg.startsWith("READY")) {
-                state.setReady(clientName, true);
+                if (!state.setReady(clientName, true))
+                    return;
+                
                 sendAll("READY " + clientName);
                 
                 if (state.allReady()) {
@@ -86,7 +88,9 @@ public class LDServer implements Runnable {
                     }
                 }
             } else if (msg.startsWith("NOTREADY")) {
-                state.setReady(clientName, false);
+                if (!state.setReady(clientName, false))
+                    return;
+                
                 sendAll("NOTREADY " + clientName);
             }
         }
