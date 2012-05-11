@@ -72,7 +72,7 @@ public class LDServer implements Runnable {
             // Messages from accepted clients
             if (msg.startsWith("CHAT")) {
                 sendAll("CHAT " + clientName + ": " + msg.substring(5));
-            } else if (msg.startsWith("READY")) {
+            } else if (msg.startsWith("READY") && !state.allReady()) {
                 if (!state.setReady(clientName, true))
                     return;
                 
@@ -88,12 +88,12 @@ public class LDServer implements Runnable {
                         clients.get(p.getName()).send(newGameMsg);
                     }
                 }
-            } else if (msg.startsWith("NOTREADY")) {
+            } else if (msg.startsWith("NOTREADY") && !state.allReady()) {
                 if (!state.setReady(clientName, false))
                     return;
                 
                 sendAll("NOTREADY " + clientName);
-            } else if (msg.startsWith("BID")) {
+            } else if (msg.startsWith("BID") && state.allReady()) {
                 if (!state.isCurrentPlayer(clientName)) {
                     clients.get(clientName).send("ERR OUT OF TURN:" + msg);
                     return;
