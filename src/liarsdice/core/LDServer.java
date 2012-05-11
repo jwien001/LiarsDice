@@ -11,6 +11,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import liarsdice.gamedata.Bid;
 import liarsdice.gamedata.GameState;
 import liarsdice.gamedata.Player;
 import liarsdice.gamedata.Settings;
@@ -92,6 +93,20 @@ public class LDServer implements Runnable {
                     return;
                 
                 sendAll("NOTREADY " + clientName);
+            } else if (msg.startsWith("BID")) {
+                if (!state.isCurrentPlayer(clientName)) {
+                    clients.get(clientName).send("ERR OUT OF TURN:" + msg);
+                    return;
+                }
+                
+                Bid bid = new Bid(msg.substring(4));
+                
+                if (state.playerBid(clientName, bid)) {
+                    sendAll("BID " + clientName + " " + bid);
+                } else {
+                    clients.get(clientName).send("ERR INVALID BID:" + msg);
+                    return;
+                }
             }
         }
     }
@@ -197,8 +212,8 @@ public class LDServer implements Runnable {
             if (error != null) {
                 try {
                     PrintWriter out = new PrintWriter(client.getOutputStream(), true);
-                    out.println("ERR " + error);
-                    System.out.println("Server->" + client.getInetAddress().getHostAddress() + ": ERR " + error);
+                    out.println("FATAL " + error);
+                    System.out.println("Server->" + client.getInetAddress().getHostAddress() + ": FATAL " + error);
                     Thread.sleep(400);
                     out.close();
                     client.close();

@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+import liarsdice.gamedata.Bid;
 import liarsdice.gamedata.GameState;
 import liarsdice.gamedata.Player;
 import liarsdice.gamedata.Settings;
@@ -136,6 +137,10 @@ public class LDClient implements Runnable {
         sendToServer((ready ? "" : "NOT") + "READY");
     }
     
+    public void bid(Bid bid) {
+        sendToServer("BID " + bid);
+    }
+    
     private synchronized void handle(String msg) {
         if (msg.startsWith("QUIT")) {
             gameError("HOST QUIT");
@@ -188,9 +193,18 @@ public class LDClient implements Runnable {
 
             gameUpdate();
             chatMessage("*** The game has begun! " + gameData[0] + " will open the first round.");
+        } else if (msg.startsWith("BID")) {
+            msg = msg.substring(4);
+            int spaceIndex = msg.indexOf(" ");
+            
+            state.playerBid(msg.substring(0, spaceIndex), new Bid(msg.substring(spaceIndex + 1)));
+            
+            gameUpdate();
+        } else if (msg.startsWith("FATAL")) {
+            gameError(msg.substring(6));
+            outputEnabled = false;
         } else if (msg.startsWith("ERR")) {
             gameError(msg.substring(4));
-            outputEnabled = false;
         }
     }
     

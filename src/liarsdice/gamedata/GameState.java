@@ -98,6 +98,66 @@ public class GameState {
     }
     
     /**
+     * Validates the bid, updates the minimum bids, and selects the next player.
+     * 
+     * @param name the name of player that made the bid
+     * @param bid the bid
+     * @return true if the bid is valid and the game state was updated successfully; false otherwise
+     */
+    public boolean playerBid(String name, Bid bid) {
+        // Validate the new bid
+        Integer minValue = minimumBids.get(bid.quantity);
+        if (minValue == null || bid.value < minValue || (palafico && bid.value != lastBid.value))
+            return false;
+        
+        // Adjust ones being wild in case ones were not called on the first bid in a normal round
+        if (lastBid == null && bid.value != 1 && !palafico)
+            onesWild = true;
+        
+        // Update the last bid
+        lastBid = bid;
+        players.get(currPlayer).setLastBid(bid);
+        
+        // Select the next player with dice
+        do {
+            currPlayer = (currPlayer + 1) % players.size();
+        } while (players.get(currPlayer).getDiceCount() == 0);        
+        
+        // Update the minimum bids
+        minimumBids.clear();
+        if (palafico) {
+            for (int i = bid.quantity + 1; i<=totalDice; i++)
+                minimumBids.put(i, bid.value); // Higher quantity, same value
+        } else {
+            switch (settings.biddingRule) {
+                case INCREASING_QUANTITY:
+                    if (bid.value < settings.maxDiceValue)
+                        minimumBids.put(bid.quantity, bid.value + 1); // Same quantity, higher value
+                    for (int i = bid.quantity + 1; i<=totalDice; i++)
+                        minimumBids.put(i, (onesWild ? 2 : 1)); // Higher quantity, any value
+                    break;
+                case INCREASING_VALUE:
+                    for (int i = bid.value < settings.maxDiceValue ? 1 : bid.quantity + 1; i<=totalDice; i++)
+                        if (i > bid.quantity)
+                            minimumBids.put(i, bid.value); // Higher quantity, same value
+                        else
+                            minimumBids.put(i, bid.value + 1); // Any quantity, higher value
+                    break;
+                case INCREASING_BOTH:
+                    if (bid.value < settings.maxDiceValue)
+                        minimumBids.put(bid.quantity, bid.value + 1); // Same quantity, higher value
+                    for (int i = bid.quantity + 1; i<=totalDice; i++)
+                        minimumBids.put(i, bid.value); // Higher quantity, same value
+                    break;
+                default:
+                    throw new IllegalStateException("Unidentified bidding rule encountered!");
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
      * Returns the player whose turn it is.
      * 
      * @return the {@link Player} whose turn it is
@@ -115,6 +175,18 @@ public class GameState {
      */
     public void setCurrentPlayer(String name) {
         currPlayer = players.indexOf(new Player(name));
+    }
+    
+    /**
+     * Checks if the player with the specified name is the current player.
+     * 
+     * @param name the name of the player to check
+     * @return true if the specified player is the current player; false otherwise
+     */
+    public boolean isCurrentPlayer(String name) {
+        if (currPlayer < 0 || currPlayer >= players.size())
+            return false;        
+        return players.get(currPlayer).getName().equals(name);
     }
     
     /**
@@ -186,10 +258,15 @@ public class GameState {
                 totalDice -= p.getDiceCount();
             }
             
-            currPlayer %= players.size();
-            
-            if (players.size() == 1)
+            if (players.size() == 1) {
                 setReady(players.get(0).getName(), false);
+                currPlayer = -1;
+            } else {                
+                currPlayer %= players.size();
+                while (players.get(currPlayer).getDiceCount() == 0) {
+                    currPlayer = (currPlayer + 1) % players.size();
+                }
+            }
             
             return p;
         }

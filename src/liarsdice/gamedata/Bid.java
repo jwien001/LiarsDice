@@ -11,6 +11,13 @@ public class Bid {
         this.quantity = quantity;
         this.value = value;
     }
+    
+    public Bid(String dataStr) {
+        String[] strs = dataStr.split("\\s+");
+        int i = 0;
+        quantity = Integer.parseInt(strs[i++]);
+        value = Integer.parseInt(strs[i++]);
+    }
 
     @Override
     public String toString() {

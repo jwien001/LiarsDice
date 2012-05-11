@@ -11,6 +11,7 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -302,7 +303,7 @@ public class LiarsDice implements ActionListener, LDListener {
             readyButton.setText("Ready");
             readyButton.setActionCommand("ready");
         } else if ("bid".equalsIgnoreCase(cmd)) {
-            
+            client.bid(new Bid((Integer) quantityCombo.getSelectedItem(), Arrays.asList(Bid.displayNames).indexOf(valueCombo.getSelectedItem())));
         } else if ("lie".equalsIgnoreCase(cmd)) {
             
         } else if ("spotOn".equalsIgnoreCase(cmd)) {
@@ -310,10 +311,12 @@ public class LiarsDice implements ActionListener, LDListener {
         } else if ("quantity".equalsIgnoreCase(cmd)) {
             HashMap<Integer, Integer> minBids = client.getGameState().getMinimumBids();
             
+            String selected = (String) valueCombo.getSelectedItem();
             valueCombo.removeAllItems();
             for (int i = minBids.get(quantityCombo.getSelectedItem()); i<=client.getGameState().getSettings().maxDiceValue; i++)
                 valueCombo.addItem(Bid.displayNames[i]);
             valueCombo.setSelectedIndex(0);
+            valueCombo.setSelectedItem(selected);
         }
 	}
 
@@ -330,6 +333,26 @@ public class LiarsDice implements ActionListener, LDListener {
     
         if (!state.allReady()) {
             chatPanel.setVisible(true);
+            
+            // Remove Bid button
+            if (bidButton.getParent() == actionPanel)
+                actionPanel.remove(bidButton);
+            
+            // Remove value combo box
+            if (valueCombo.getParent() == actionPanel)
+                actionPanel.remove(valueCombo);
+            
+            // Remove quantity combo box
+            if (quantityCombo.getParent() == actionPanel)
+                actionPanel.remove(quantityCombo);
+            
+            //Remove Spot On button
+            if (spotOnButton.getParent() == actionPanel)
+                actionPanel.remove(spotOnButton);
+            
+            //Remove Lie button
+            if (lieButton.getParent() == actionPanel)
+                actionPanel.remove(lieButton);
             
             // Add Quit button
             if (quitButton.getParent() != actionPanel)
@@ -354,7 +377,7 @@ public class LiarsDice implements ActionListener, LDListener {
                 actionPanel.remove(readyButton);
             
             // If this player's turn or out-of-order calls allowed
-            if (state.getCurrentPlayer().getName().equals(client.getName()) 
+            if (state.isCurrentPlayer(client.getName()) 
                     || (state.getSettings().callOutOfOrder && state.getPlayer(client.getName()).getDiceCount() > 0)) {                
                 // Add Spot On button
                 if (state.getSettings().spotOn && spotOnButton.getParent() != actionPanel)
@@ -371,26 +394,32 @@ public class LiarsDice implements ActionListener, LDListener {
                 //Remove Lie button
                 if (lieButton.getParent() == actionPanel)
                     actionPanel.remove(lieButton);
-            }
+            }            
+
+            HashMap<Integer, Integer> minBids = state.getMinimumBids();
             
-            // If this player's turn
-            if (state.getCurrentPlayer().getName().equals(client.getName())) {                
+            // If this player's turn and there are bidding options
+            if (state.isCurrentPlayer(client.getName()) && !minBids.isEmpty()) {                
                 // Add Bid button
                 if (bidButton.getParent() != actionPanel)
                     actionPanel.add(bidButton, 0);
                 
-                HashMap<Integer, Integer> minBids = state.getMinimumBids();
                 List<Integer> quantities = new ArrayList<Integer>(minBids.keySet());
                 Collections.sort(quantities);
                 
+                quantityCombo.removeActionListener(this);
                 quantityCombo.removeAllItems();
                 for (Integer i : quantities)
                     quantityCombo.addItem(i);
                 quantityCombo.setSelectedIndex(0);
+                quantityCombo.addActionListener(this);
                 
                 valueCombo.removeAllItems();
-                for (int i = minBids.get(quantities.get(0)); i<=state.getSettings().maxDiceValue; i++)
-                    valueCombo.addItem(Bid.displayNames[i]);
+                if (state.isPalafico() && state.getLastBid() != null)
+                    valueCombo.addItem(Bid.displayNames[minBids.get(quantities.get(0))]);
+                else
+                    for (int i = minBids.get(quantities.get(0)); i<=state.getSettings().maxDiceValue; i++)
+                        valueCombo.addItem(Bid.displayNames[i]);
                 valueCombo.setSelectedIndex(0);
                 
                 // Add value combo box
@@ -438,23 +467,29 @@ public class LiarsDice implements ActionListener, LDListener {
     
     @Override
     public void gameError(String errorCode) {
-        if ("GAME FULL".equals(errorCode)) {
+        if (errorCode.startsWith("GAME FULL")) {
             String msg = "The game at " + joinGameDialog.getIPAddress() + " on port " + joinGameDialog.getPortNumber() + " is full.";
             JOptionPane.showMessageDialog(frame, msg, "Full Game", JOptionPane.ERROR_MESSAGE);
             resetToMainMenu();
-        } else if ("GAME IN PROGRESS".equals(errorCode)) {
+        } else if (errorCode.startsWith("GAME IN PROGRESS")) {
             String msg = "The game at " + joinGameDialog.getIPAddress() + " on port " + joinGameDialog.getPortNumber() + " is already in progress."
                     + " You may be able to join when the game has finished.";
             JOptionPane.showMessageDialog(frame, msg, "Game In Progress", JOptionPane.ERROR_MESSAGE);
             resetToMainMenu();
-        } else if ("CONNECTION LOST".equals(errorCode)) {
+        } else if (errorCode.startsWith("CONNECTION LOST")) {
             String msg = "The connection to the game was lost.";
             JOptionPane.showMessageDialog(frame, msg, "Connection Lost", JOptionPane.ERROR_MESSAGE);
             resetToMainMenu();
-        } else if ("HOST QUIT".equals(errorCode)) {
+        } else if (errorCode.startsWith("HOST QUIT")) {
             String msg = "The host has closed the game.";
             JOptionPane.showMessageDialog(frame, msg, "Host Quit", JOptionPane.ERROR_MESSAGE);
             resetToMainMenu();
+        } else if (errorCode.startsWith("OUT OF TURN")) {
+            String msg = "It is not your turn, you cannot do that. (" + errorCode.substring(12) + ")";
+            JOptionPane.showMessageDialog(frame, msg, "Out of Turn", JOptionPane.WARNING_MESSAGE);
+        } else if (errorCode.startsWith("INVALID BID")) {
+            String msg = "Your bid was below the minimum required bid. (" + errorCode.substring(12) + ")";
+            JOptionPane.showMessageDialog(frame, msg, "Invalid Bid", JOptionPane.WARNING_MESSAGE);
         }
     }
 }

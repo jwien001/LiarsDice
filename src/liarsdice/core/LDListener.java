@@ -17,12 +17,14 @@ public interface LDListener {
     
     /**
      * This method is called when the client encounters an error locally or from the server. 
-     * The types of error messages are:
+     * All of the possible types of error messages are:
      * <ul>
      * <li>HOST QUIT
      * <li>CONNECTION LOST
      * <li>GAME FULL
      * <li>GAME IN PROGRESS
+     * <li>OUT OF TURN
+     * <li>INVALID BID
      * </ul>
      * 
      * @param errorCode a message indicating the type of error
