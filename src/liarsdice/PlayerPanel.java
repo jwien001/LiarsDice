@@ -32,24 +32,37 @@ public class PlayerPanel extends JPanel {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, 239, 159);
         
-        if (!state.allReady() && player.isReady())
-            g.setColor(Color.GREEN);
-        else if (state.allReady() && player.equals(state.getCurrentPlayer()))
-            g.setColor(Color.YELLOW);
+        if (!state.allReady())
+            if (player.isReady())
+                g.setColor(Color.GREEN);
+            else
+                g.setColor(Color.BLACK);
         else
-            g.setColor(Color.BLACK);
+            if (state.getWinner() == null && player.equals(state.getCurrentPlayer()))
+                g.setColor(Color.YELLOW);
+            else if (player.equals(state.getWinner()))
+                g.setColor(Color.GREEN);
+            else if (player.equals(state.getLoser()))
+                g.setColor(Color.RED);
+            else
+                g.setColor(Color.BLACK);
         g.drawRect(0, 0, 239, 159);
         
         g.setColor(Color.BLACK);
-        g.drawString(player.getName(), 8, 16);
+        g.drawString(player.getName(), 8, 16);        
         
         if (state.allReady()) {
-            g.drawString("Last bid: " + (player.getLastBid() == null ? "none" : player.getLastBid()), 8, 32);
-            
-            String dice = "Dice:";
-            for (int value : player.getDice())
-                dice += " " + (value == 0 ? "?" : value);
-            g.drawString(dice, 8, 48);
+            if (player.getDiceCount() == 0) {
+                g.setColor(new Color(0f, 0f, 0f, 0.2f));
+                g.fillRect(0, 0, getWidth(), getHeight());
+            } else {
+                g.drawString("Last bid: " + (player.getLastBid() == null ? "none" : player.getLastBid().toPrettyString()), 8, 32);
+                
+                String dice = "Dice:";
+                for (int value : player.getDice())
+                    dice += " " + (value == 0 ? "?" : value);
+                g.drawString(dice, 8, 48);
+            }
         }
     }
 }

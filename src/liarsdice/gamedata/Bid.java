@@ -18,6 +18,10 @@ public class Bid {
         quantity = Integer.parseInt(strs[i++]);
         value = Integer.parseInt(strs[i++]);
     }
+    
+    public String toPrettyString() {
+        return quantity + " " + displayNames[value];
+    }
 
     @Override
     public String toString() {

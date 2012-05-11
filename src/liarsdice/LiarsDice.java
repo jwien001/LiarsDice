@@ -34,6 +34,7 @@ import liarsdice.core.LDClient;
 import liarsdice.core.LDListener;
 import liarsdice.gamedata.Bid;
 import liarsdice.gamedata.GameState;
+import liarsdice.gamedata.Player;
 import liarsdice.gamedata.Settings;
 
 public class LiarsDice implements ActionListener, LDListener {
@@ -305,9 +306,9 @@ public class LiarsDice implements ActionListener, LDListener {
         } else if ("bid".equalsIgnoreCase(cmd)) {
             client.bid(new Bid((Integer) quantityCombo.getSelectedItem(), Arrays.asList(Bid.displayNames).indexOf(valueCombo.getSelectedItem())));
         } else if ("lie".equalsIgnoreCase(cmd)) {
-            
+            client.callLie();
         } else if ("spotOn".equalsIgnoreCase(cmd)) {
-            
+            client.callSpotOn();
         } else if ("quantity".equalsIgnoreCase(cmd)) {
             HashMap<Integer, Integer> minBids = client.getGameState().getMinimumBids();
             
@@ -366,19 +367,27 @@ public class LiarsDice implements ActionListener, LDListener {
             }
             
             messagePanel.setText("Waiting for more players...\nPress Ready to start the game.\nThe game will begin when all players are ready.");
+        } else if (state.getWinner() != null) {
+            actionPanel.removeAll();
+            actionPanel.add(quitButton);
         } else if (state.getCurrentPlayer() != null) {
             messagePanel.setText("Total dice: " + state.getTotalDice());
+            if (state.getLastBid() != null)
+                messagePanel.append("\nLast bid: " + state.getLastBid().toPrettyString() + " by " + state.getPreviousPlayer().getName());
             if (state.isPalafico())
                 messagePanel.append("\nPalafico round!");
+            messagePanel.append("\nOnes are currently" + (state.areOnesWild() ? "" : " not") + " wild.");
             messagePanel.append("\n" + state.getCurrentPlayer().getName() + "'s turn");
             
             // Remove ready button
             if (readyButton.getParent() == actionPanel)
                 actionPanel.remove(readyButton);
             
-            // If this player's turn or out-of-order calls allowed
-            if (state.isCurrentPlayer(client.getName()) 
-                    || (state.getSettings().callOutOfOrder && state.getPlayer(client.getName()).getDiceCount() > 0)) {                
+            // If a bid has been made and this player's turn or out-of-order calls allowed
+            if (state.getLastBid() != null && (state.isCurrentPlayer(client.getName()) 
+                    || (state.getSettings().callOutOfOrder 
+                            && state.getPlayer(client.getName()).getDiceCount() > 0 
+                            && !state.isPreviousPlayer(client.getName())))) {                
                 // Add Spot On button
                 if (state.getSettings().spotOn && spotOnButton.getParent() != actionPanel)
                     actionPanel.add(spotOnButton, 0);
@@ -463,6 +472,44 @@ public class LiarsDice implements ActionListener, LDListener {
         }
         frame.pack();
         frame.repaint();
+        
+        if (state.getWinner() != null) {
+            // Determine who called out who
+            Player defendant, challenger;
+            if (state.isPreviousPlayer(state.getWinner().getName())) {
+                defendant = state.getWinner();
+                challenger = state.getLoser();
+            } else {
+                defendant = state.getLoser();
+                challenger = state.getWinner();
+            }
+            
+            for (int i=state.getSettings().delayBetweenRounds; i>0; i--) {
+                messagePanel.setText(challenger.getName() + " called " + (state.getSpotOnCall() ? "Spot On" : "Lie") 
+                        + " on " + defendant.getName() + "'s bid of " + state.getLastBid().toPrettyString() + ".");
+                
+                if (state.numPlayersWithDice() == 1)
+                    messagePanel.append("\n" + state.getWinner().getName() + " wins the round and the game!");
+                else
+                    messagePanel.append("\n" + state.getWinner().getName() + " wins the round!");
+                
+                if (state.getLoser().getDiceCount() == 1)
+                    messagePanel.append(" " + state.getLoser().getName() + " is out of the game.");
+                else
+                    messagePanel.append(" " + state.getLoser().getName() + " loses a die.");
+                
+                if (state.numPlayersWithDice() == 1)
+                    messagePanel.append("\nThe game will end in " + i + " seconds.");
+                else
+                    messagePanel.append("\nThe next round will begin in " + i + " seconds.");
+                
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
     
     @Override

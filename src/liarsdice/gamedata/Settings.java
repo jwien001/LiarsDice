@@ -13,17 +13,19 @@ public class Settings {
     public boolean onesWild;
     public boolean openWithOnes;
     public boolean palafico;
+    public int delayBetweenRounds;
     
     public Settings() {
         maxPlayers = 4;
         startingDice = 5;
         maxDiceValue = 6;
         biddingRule = BiddingRule.INCREASING_QUANTITY;
-        callOutOfOrder = false;
-        spotOn = false;
+        callOutOfOrder = true;
+        spotOn = true;
         onesWild = true;
         openWithOnes = false;
-        palafico = false;
+        palafico = true;
+        delayBetweenRounds = 10;
     }
     
     public Settings(String dataStr) {
@@ -38,6 +40,7 @@ public class Settings {
         onesWild = Boolean.parseBoolean(strs[i++]);
         openWithOnes = Boolean.parseBoolean(strs[i++]);
         palafico = Boolean.parseBoolean(strs[i++]);
+        delayBetweenRounds = Integer.parseInt(strs[i++]);
     }
     
     @Override
@@ -52,6 +55,7 @@ public class Settings {
         str += " " + (onesWild ? "true" : "false");
         str += " " + (openWithOnes ? "true" : "false");
         str += " " + (palafico ? "true" : "false");
+        str += " " + delayBetweenRounds;
         str += DELIM;
         return str;
     }

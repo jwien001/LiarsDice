@@ -81,11 +81,15 @@ public class LDServer implements Runnable {
                 if (state.allReady()) {
                     state.startNewGame(true);
                     
+                    sendAll("NEWGAME " + state.getCurrentPlayer().getName());
+                    
+                    state.startNewRound(true);
+                    
                     for (Player p : state.getPlayers()) {
-                        String newGameMsg = "NEWGAME " + state.getCurrentPlayer().getName();
+                        String newRoundMsg = "NEWROUND";
                         for (int value : p.getDice())
-                            newGameMsg += " " + value;
-                        clients.get(p.getName()).send(newGameMsg);
+                            newRoundMsg += " " + value;
+                        clients.get(p.getName()).send(newRoundMsg);
                     }
                 }
             } else if (msg.startsWith("NOTREADY") && !state.allReady()) {
@@ -94,7 +98,7 @@ public class LDServer implements Runnable {
                 
                 sendAll("NOTREADY " + clientName);
             } else if (msg.startsWith("BID") && state.allReady()) {
-                if (!state.isCurrentPlayer(clientName)) {
+                if (state.getPlayer(clientName).getDiceCount() == 0 || !state.isCurrentPlayer(clientName)) {
                     clients.get(clientName).send("ERR OUT OF TURN:" + msg);
                     return;
                 }
@@ -106,6 +110,38 @@ public class LDServer implements Runnable {
                 } else {
                     clients.get(clientName).send("ERR INVALID BID:" + msg);
                     return;
+                }
+            } else if ((msg.startsWith("LIE") || (settings.spotOn && msg.startsWith("SPOTON"))) && state.allReady() && state.getLastBid() != null) {
+                if (state.getPlayer(clientName).getDiceCount() == 0
+                        || (!state.isCurrentPlayer(clientName) && (!settings.callOutOfOrder || state.isPreviousPlayer(clientName)))) {
+                    clients.get(clientName).send("ERR OUT OF TURN:" + msg);
+                    return;
+                }
+                
+                boolean gameOver = state.evaluateCall(clientName, msg.startsWith("SPOTON"));
+                
+                String callMsg = (msg.startsWith("SPOTON") ? "SPOTON " : "LIE ") + clientName;
+                for (Player p : state.getPlayers()) {
+                    callMsg += ":";
+                    for (int value : p.getDice())
+                        callMsg += value + " ";
+                    callMsg = callMsg.trim();
+                }
+                callMsg += ":";
+                sendAll(callMsg);
+                
+                if (!gameOver) {
+                    state.startNewRound(true);
+                    
+                    for (Player p : state.getPlayers()) {
+                        String newRoundMsg = "NEWROUND";
+                        for (int value : p.getDice())
+                            newRoundMsg += " " + value;
+                        clients.get(p.getName()).send(newRoundMsg);
+                    }
+                } else {
+                    state.resetToPregame();
+                    sendAll("GAMEOVER");
                 }
             }
         }

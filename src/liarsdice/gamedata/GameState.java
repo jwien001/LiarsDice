@@ -10,8 +10,9 @@ public class GameState {
     private int numReady;
     private int numWithDice;
     private int totalDice;
-    private int currPlayer;
-    private Bid lastBid;
+    private int currPlayer, prevPlayer;
+    private Player winner, loser;
+    private Boolean spotOnCall;
     private HashMap<Integer, Integer> minimumBids;
     private boolean palafico;
     private boolean onesWild;
@@ -23,7 +24,10 @@ public class GameState {
         numWithDice = 0;
         totalDice = 0;
         currPlayer = -1;
-        lastBid = null;
+        prevPlayer = -1;
+        winner = null;
+        loser = null;
+        spotOnCall = null;
         minimumBids = new HashMap<Integer, Integer>();
         palafico = false;
         onesWild = false;
@@ -36,7 +40,10 @@ public class GameState {
         numWithDice = 0;
         totalDice = 0;
         currPlayer = -1;
-        lastBid = null;
+        prevPlayer = -1;
+        winner = null;
+        loser = null;
+        spotOnCall = null;
         minimumBids = new HashMap<Integer, Integer>();
         palafico = false;
         onesWild = settings.onesWild && !settings.openWithOnes;
@@ -71,25 +78,40 @@ public class GameState {
         return palafico;
     }
     
+    public boolean areOnesWild() {
+        return onesWild;
+    }
+    
     public void startNewGame(boolean randomize) {
         for (Player p : players)
             p.setDice(new int[settings.startingDice]);
         numWithDice = players.size();
         totalDice = numWithDice * settings.startingDice;
-        if (randomize)
-            currPlayer = (int) (Math.random() * players.size());
+        currPlayer = randomize ? (int) (Math.random() * players.size()) : -1;
         palafico = false;
-        
-        startNewRound(randomize);
     }
     
     public void startNewRound(boolean randomize) {
-        if (randomize)
-            for (Player p : players)
-                for (int i=0; i<p.getDiceCount(); i++)
-                    p.getDice()[i] = (int) (Math.random() * settings.maxDiceValue) + 1;        
+        if (loser != null) {
+            loser.setDice(new int[loser.getDiceCount() - 1]);
+            totalDice--;            
+            
+            palafico = loser.getDiceCount() == 1 && numWithDice > 2;
+            
+            currPlayer = players.indexOf(loser);
+            goToNextPlayerWithDice();
+        }
+        
+        for (Player p : players) {
+            p.setLastBid(null);
+            for (int i=0; i<p.getDiceCount(); i++)
+                p.getDice()[i] = randomize ? (int) (Math.random() * settings.maxDiceValue) + 1 : 0;      
+        }
 
-        lastBid = null;
+        prevPlayer = -1;
+        winner = null;
+        loser = null;
+        spotOnCall = null;
         onesWild = settings.onesWild && !settings.openWithOnes && !palafico;
         
         minimumBids.clear();
@@ -107,21 +129,20 @@ public class GameState {
     public boolean playerBid(String name, Bid bid) {
         // Validate the new bid
         Integer minValue = minimumBids.get(bid.quantity);
-        if (minValue == null || bid.value < minValue || (palafico && bid.value != lastBid.value))
+        if (minValue == null || bid.value < minValue || (palafico && getLastBid() != null && bid.value != getLastBid().value))
             return false;
         
         // Adjust ones being wild in case ones were not called on the first bid in a normal round
-        if (lastBid == null && bid.value != 1 && !palafico)
+        if (getLastBid() == null && bid.value != 1 && !palafico)
             onesWild = true;
         
         // Update the last bid
-        lastBid = bid;
-        players.get(currPlayer).setLastBid(bid);
+        getCurrentPlayer().setLastBid(bid);
         
         // Select the next player with dice
-        do {
-            currPlayer = (currPlayer + 1) % players.size();
-        } while (players.get(currPlayer).getDiceCount() == 0);        
+        prevPlayer = currPlayer;
+        currPlayer = (currPlayer + 1) % players.size();
+        goToNextPlayerWithDice();       
         
         // Update the minimum bids
         minimumBids.clear();
@@ -158,6 +179,42 @@ public class GameState {
     }
     
     /**
+     * Evaluate a "Lie" or "Spot On" call from a player.
+     * 
+     * @param name the name of the player that made the call
+     * @param spotOn true if it was a Spot On call, false if it was a Lie call
+     * @return true if the game is over; false otherwise
+     */
+    public boolean evaluateCall(String name, boolean spotOn) {
+        spotOnCall = spotOn;
+        int count = 0;
+        for (Player p : players)
+            for (int value : p.getDice())
+                if (value == getLastBid().value || (value == 1 && onesWild))
+                    count++;
+        
+        boolean callCorrect = spotOn ? count == getLastBid().quantity : count < getLastBid().quantity;
+        winner = callCorrect ? getPlayer(name) : getPreviousPlayer();
+        loser = callCorrect ? getPreviousPlayer() : getPlayer(name);
+        
+        // The dice isn't actually removed until the next call to nextRound()        
+        if (loser.getDiceCount() == 1)
+            numWithDice--;            
+        
+        return numWithDice == 1;
+    }
+    
+    public void resetToPregame() {
+        for (Player p : players)
+            p.setReady(false);
+        numReady = 0;
+        
+        winner = null;
+        loser = null;
+        spotOnCall = null;
+    }
+    
+    /**
      * Returns the player whose turn it is.
      * 
      * @return the {@link Player} whose turn it is
@@ -166,6 +223,34 @@ public class GameState {
         if (currPlayer < 0 || currPlayer >= players.size())
             return null;
         return players.get(currPlayer);
+    }
+    
+    /**
+     * Returns the player who made the last bid.
+     * 
+     * @return the {@link Player} who made the last bid
+     */
+    public Player getPreviousPlayer() {
+        if (prevPlayer < 0 || prevPlayer >= players.size())
+            return null;
+        return players.get(prevPlayer);
+    }
+    
+    public Player getWinner() {
+        return winner;
+    }
+    
+    public Player getLoser() {
+        return loser;
+    }
+    
+    /**
+     * Returns whether or not the call that ended the last round was Spot On.
+     * 
+     * @return true if the call was Spot On, false if it was Lie
+     */
+    public Boolean getSpotOnCall() {
+        return spotOnCall;
     }
     
     /**
@@ -184,9 +269,21 @@ public class GameState {
      * @return true if the specified player is the current player; false otherwise
      */
     public boolean isCurrentPlayer(String name) {
-        if (currPlayer < 0 || currPlayer >= players.size())
+        if (getCurrentPlayer() == null)
             return false;        
-        return players.get(currPlayer).getName().equals(name);
+        return getCurrentPlayer().getName().equals(name);
+    }
+    
+    /**
+     * Checks if the player with the specified name is the previous player.
+     * 
+     * @param name the name of the player to check
+     * @return true if the specified player is the previous player; false otherwise
+     */
+    public boolean isPreviousPlayer(String name) {
+        if (getPreviousPlayer() == null)
+            return false;        
+        return getPreviousPlayer().getName().equals(name);
     }
     
     /**
@@ -195,7 +292,9 @@ public class GameState {
      * @return the previous {@link Bid}
      */
     public Bid getLastBid() {
-        return lastBid;
+        if (getPreviousPlayer() == null)
+            return null;
+        return getPreviousPlayer().getLastBid();
     }
     
     /**
@@ -263,9 +362,7 @@ public class GameState {
                 currPlayer = -1;
             } else {                
                 currPlayer %= players.size();
-                while (players.get(currPlayer).getDiceCount() == 0) {
-                    currPlayer = (currPlayer + 1) % players.size();
-                }
+                goToNextPlayerWithDice();
             }
             
             return p;
@@ -298,5 +395,11 @@ public class GameState {
      */
     public ArrayList<Player> getPlayers() {
         return players;
+    }
+    
+    private void goToNextPlayerWithDice() {
+        while (getCurrentPlayer().getDiceCount() == 0) {
+            currPlayer = (currPlayer + 1) % players.size();
+        }
     }
 }

@@ -141,6 +141,14 @@ public class LDClient implements Runnable {
         sendToServer("BID " + bid);
     }
     
+    public void callLie() {
+        sendToServer("LIE");
+    }
+    
+    public void callSpotOn() {
+        sendToServer("SPOTON");
+    }
+    
     private synchronized void handle(String msg) {
         if (msg.startsWith("QUIT")) {
             gameError("HOST QUIT");
@@ -184,21 +192,55 @@ public class LDClient implements Runnable {
         } else if (msg.startsWith("NEWGAME")) {
             state.startNewGame(false);
             
-            String[] gameData = msg.substring(8).split("\\s+");
-            state.setCurrentPlayer(gameData[0]);
-            
-            Player p = state.getPlayer(clientName);
-            for (int i=1; i<gameData.length; i++)
-                p.getDice()[i-1] = Integer.parseInt(gameData[i]);
+            state.setCurrentPlayer(msg.substring(8));
 
+            chatMessage("*** The game has begun! " + msg.substring(8) + " will open the first round.");
+        } else if (msg.startsWith("NEWROUND")) {
+            state.startNewRound(false);
+            
+            // If this player has dice...
+            if (msg.length() > 8) {            
+                String[] gameData = msg.substring(9).split("\\s+");
+                
+                Player p = state.getPlayer(clientName);
+                for (int i=0; i<gameData.length; i++)
+                    p.getDice()[i] = Integer.parseInt(gameData[i]);
+            }
+            
             gameUpdate();
-            chatMessage("*** The game has begun! " + gameData[0] + " will open the first round.");
         } else if (msg.startsWith("BID")) {
             msg = msg.substring(4);
             int spaceIndex = msg.indexOf(" ");
             
             state.playerBid(msg.substring(0, spaceIndex), new Bid(msg.substring(spaceIndex + 1)));
             
+            gameUpdate();
+        } else if (msg.startsWith("LIE") || msg.startsWith("SPOTON"))  {
+            boolean spotOn;
+            if (msg.startsWith("SPOTON")) {
+                spotOn = true;
+                msg = msg.substring(7);
+            } else {
+                spotOn = false;
+                msg = msg.substring(4);
+            }
+            
+            String[] gameData = msg.split(":");
+            
+            for (int i=0; i<state.getPlayers().size(); i++) {
+                String[] dice = gameData[i+1].split("\\s+");
+                for (int j=0; j<state.getPlayers().get(i).getDiceCount(); j++)
+                    state.getPlayers().get(i).getDice()[j] = Integer.parseInt(dice[j]);
+            }
+            
+            state.evaluateCall(gameData[0], spotOn);
+            
+            gameUpdate();
+        } else if (msg.startsWith("GAMEOVER")) {
+            chatMessage("*** " + state.getWinner().getName() + " has won the game!");
+            
+            state.resetToPregame();
+
             gameUpdate();
         } else if (msg.startsWith("FATAL")) {
             gameError(msg.substring(6));
