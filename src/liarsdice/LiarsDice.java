@@ -4,7 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Image;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
@@ -558,8 +557,6 @@ public class LiarsDice implements ActionListener, LDListener {
             //fav = "favicon_osx.png";
 			
         }*/
-		
-		fav = "resources/" + fav;
 		
 		Image img = null;
 		try {
