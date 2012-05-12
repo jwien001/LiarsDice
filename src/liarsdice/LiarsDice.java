@@ -3,12 +3,15 @@ package liarsdice;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,9 +19,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.BoundedRangeModel;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -214,10 +219,12 @@ public class LiarsDice implements ActionListener, LDListener {
 		chatPanel.setVisible(false);
 		frame.add(chatPanel, BorderLayout.EAST);
 
-        frame.setVisible(true);
+		setupFavicon();
+
+		frame.setVisible(true);
 		frame.pack();
 	}
-	
+
 	public void resetToMainMenu() {
 	    client = null;
         chatPanel.setVisible(false);
@@ -539,6 +546,35 @@ public class LiarsDice implements ActionListener, LDListener {
             JOptionPane.showMessageDialog(frame, msg, "Invalid Bid", JOptionPane.WARNING_MESSAGE);
         }
     }
+    
+    /**
+     * Set up an os-dependent icon.
+     */
+	private void setupFavicon() {
+		String fav = "favicon_other.png";
+		
+		// OSX dock doesn't work the same way. Investigating.
+		/*if (System.getProperty("os.name").contains("mac")) {
+            //fav = "favicon_osx.png";
+			
+        }*/
+		
+		fav = "resources/" + fav;
+		
+		Image img = null;
+		try {
+			img = (new ImageIcon(ClassLoader.getSystemResource(fav))).getImage();
+		} catch (final Exception noImageinJar) {
+			try {
+				img = ImageIO.read(new File(fav));
+			} catch (final IOException nope) {
+				System.err.println("Cannot locate favicon.");
+			}
+		}
+		if(img != null) {
+			frame.setIconImage(img);
+		}
+	}
 }
 
 @SuppressWarnings("serial")
