@@ -550,7 +550,7 @@ public class LiarsDice implements ActionListener, LDListener {
      * Set up an os-dependent icon.
      */
 	private void setupFavicon() {
-		String fav = "favicon_other.png";
+		String fav = "resources/favicon_other.png";
 		
 		// OSX dock doesn't work the same way. Investigating.
 		/*if (System.getProperty("os.name").contains("mac")) {
